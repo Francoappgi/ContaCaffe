@@ -265,6 +265,7 @@ const ADMIN_EMAIL = 'franco@contacaffe.local';
 
 let state = { currentUser: null, people: [], records: [], users: [] };
 let unsubUsers = null, unsubRecords = null, unsubPeople = null;
+let isRegistering = false; // FONDAMENTALE: traccia se ci stiamo registrando
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -334,14 +335,23 @@ async function handleRegister(username, password, password2) {
   if (!username || username.length < 2) return { error: 'Nome troppo corto' };
   if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (password !== password2) return { error: 'Le password non coincidono' };
+  
+  isRegistering = true;
   try {
     const usersSnap = await getDocs(collection(db, 'users'));
-    if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) return { error: 'Nome utente già in uso' };
+    if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) {
+        isRegistering = false;
+        return { error: 'Nome utente già in uso' };
+    }
     const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
     await signOut(auth); 
+    isRegistering = false;
     return { ok: true };
-  } catch (e) { return { error: 'Errore: ' + e.message }; }
+  } catch (e) { 
+    isRegistering = false;
+    return { error: 'Errore: ' + e.message }; 
+  }
 }
 
 async function handleChangePassword(oldPw, newPw, newPw2) {
@@ -485,7 +495,17 @@ function setupAppEvents() {
 
   document.getElementById('add-person-btn').addEventListener('click', async () => {
     const input = document.getElementById('new-person'); const name = input.value.trim(); if (!name) return; if (state.people.includes(name)) return alert('Esiste già');
-    await addDoc(collection(db, 'people'), { name }); input.value = ''; toast('Aggiunto');
+    
+    setLoading(true);
+    try {
+        // Usiamo un ID basato sul nome per evitare conflitti se clicchi due volte
+        const docId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        await setDoc(doc(db, 'people', docId), { name: name });
+        input.value = ''; toast('✓ Aggiunto');
+    } catch(e) {
+        alert("Errore aggiunta: " + e.message);
+    }
+    setLoading(false);
   });
 
   document.getElementById('reset-btn').addEventListener('click', () => { alert('Per svuotare il database, fallo dalla console Firebase (Firestore).'); });
@@ -500,11 +520,12 @@ async function handleLogout() {
   showScreen('login');
 }
 
-// PROTEZIONE: se c'è un utente loggato, lo facciamo entrare SUBITO, 
-// e leggiamo i dati in background senza bloccarlo o disconnetterlo se Firestore è lento.
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // Mostriamo subito la schermata app di base per non far vedere il login
+    // Se stiamo attivamente registrando un nuovo utente, non facciamo nulla
+    // aspettiamo che la funzione handleRegister finisca e faccia il signOut da sola
+    if (isRegistering) return;
+
     showScreen('app'); 
     
     try {
@@ -514,7 +535,6 @@ onAuthStateChanged(auth, async (user) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Se c'è un problema di stato, avvisiamo ma non buttiamo fuori se non è necessario
         if (data.status === 'suspended' || data.status === 'deactivated') {
           showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error');
           await signOut(auth);
@@ -528,11 +548,9 @@ onAuthStateChanged(auth, async (user) => {
           state.currentUser.role = 'admin';
         }
 
-        // Avviamo i listener per caricare i dati veri
         startListeners();
         renderCurrentUser();
         
-        // Gestiamo la schermata di cambio password se necessario
         if (state.currentUser.mustChangePassword) { 
           showScreen('change'); 
           document.getElementById('change-back-wrap').classList.add('hidden'); 
@@ -542,20 +560,21 @@ onAuthStateChanged(auth, async (user) => {
           renderAll(); 
         }
       } else {
-        // Se non c'è il documento, diamo un utente di default per non bloccarlo
         state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
         renderCurrentUser();
         showScreen('app');
       }
     } catch (e) { 
       console.error("Errore Firestore in background:", e); 
-      // Se c'è un errore di rete, entriamo lo stesso in modalità base
       state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
       renderCurrentUser();
       showScreen('app');
     }
   } else {
-    state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
+    // Se l'utente è nullo (disconnesso) E non stiamo registrando, mostra il login
+    if (!isRegistering) {
+        state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
+    }
   }
 });
 
