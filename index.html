@@ -151,7 +151,7 @@ h3:first-child{margin-top:0}
   <header>
     <h1>☕ ContaCaffè</h1>
     <div class="user-bar">
-      <span id="current-user"></span>
+      <span id="current-user">...</span>
       <button id="password-btn" title="Cambia password">🔑</button>
       <button id="logout-btn">Esci</button>
     </div>
@@ -354,7 +354,7 @@ async function handleRegister(username, password, password2) {
     const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
     
-    // Slogga subito per evitare che l'app si apra per errore
+    // Forza la disconnessione immediata per non far vedere l'app
     await signOut(auth); 
     
     isRegistering = false;
@@ -401,7 +401,9 @@ async function adminCreateUser(username, tempPw) {
 
 function renderCurrentUser() {
   if (!state.currentUser) return;
+  // FIX: Aggiorna il nome in alto
   document.getElementById('current-user').textContent = state.currentUser.username + (state.currentUser.role === 'admin' ? ' (admin)' : '');
+  // FIX: Mostra le sezioni admin
   document.querySelectorAll('.admin-only-section').forEach(el => el.classList.toggle('hidden', !isAdmin()));
 }
 function resetTabsToDefault() { document.querySelectorAll('#screen-app nav button').forEach((b, i) => b.classList.toggle('active', i === 0)); document.querySelectorAll('#screen-app main section').forEach((s, i) => s.classList.toggle('active', i === 0)); }
@@ -465,12 +467,12 @@ function renderUsers() {
   // Sezione Aggiungi Utente (con account)
   html += '<h3>Aggiungi utente (Account reale)</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
   
-  // Sezione Aggiungi Nominativo (senza account) - RIPRISTINATA
+  // Sezione Aggiungi Nominativo (senza account)
   html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account. Viene salvato sul tuo dispositivo.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
 
   container.innerHTML = html;
 
-  // Gestione azioni (approva, sospendi, ecc.)
+  // Gestione azioni
   container.querySelectorAll('button[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const action = btn.dataset.action, id = btn.dataset.id, name = btn.dataset.name;
