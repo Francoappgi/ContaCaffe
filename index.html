@@ -6,116 +6,94 @@
 <meta name="theme-color" content="#6f4e37">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ContaCaffè">
 <title>☕ ContaCaffè</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236f4e37'/%3E%3Cg stroke='%23fdfbf8' stroke-width='16' stroke-linecap='round' fill='none'%3E%3Cpath d='M205 175 q-18 -28 0 -56'/%3E%3Cpath d='M256 160 q-18 -28 0 -56'/%3E%3Cpath d='M307 175 q-18 -28 0 -56'/%3E%3C/g%3E%3Cpath d='M366 245 h18 a46 46 0 0 1 0 92 h-18' fill='none' stroke='%23fdfbf8' stroke-width='24' stroke-linecap='round'/%3E%3Cpath d='M148 215 h216 v110 a80 80 0 0 1 -80 80 h-56 a80 80 0 0 1 -80 -80 z' fill='%23fdfbf8'/%3E%3Cellipse cx='256' cy='215' rx='108' ry='14' fill='%236f4e37'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236f4e37'/%3E%3Cpath d='M148 215 h216 v110 a80 80 0 0 1 -80 80 h-56 a80 80 0 0 1 -80 -80 z' fill='%23fdfbf8'/%3E%3Cellipse cx='256' cy='215' rx='108' ry='14' fill='%236f4e37'/%3E%3C/svg%3E">
 <style>
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #faf6f0; color: #2b1d10; padding-bottom: 80px; }
-.screen { display: none; }
-.screen.active { display: block; }
-#screen-login.active, #screen-register.active, #screen-change.active {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 100vh; padding: 20px;
-  background: linear-gradient(135deg, #6f4e37, #3d2a1c);
-}
-.auth-card { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-.auth-card h1 { text-align: center; margin: 0 0 8px; font-size: 24px; color: #6f4e37; }
-.auth-card h2 { text-align: center; margin: 0 0 20px; font-size: 14px; color: #8a7562; font-weight: 400; }
-.auth-card form { display: flex; flex-direction: column; gap: 12px; }
-.auth-card input { padding: 14px; border: 1px solid #e0d5c7; border-radius: 8px; font-size: 15px; background: #fdfbf8; font-family: inherit; }
-.auth-card input:focus { outline: 2px solid #6f4e37; outline-offset: -1px; }
-.auth-card button[type=submit] { padding: 14px; background: #6f4e37; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; }
-.auth-card button[type=submit]:active { background: #4a3423; }
-.auth-link { text-align: center; margin: 16px 0 0; font-size: 13px; color: #8a7562; }
-.auth-link a { color: #6f4e37; text-decoration: none; font-weight: 600; cursor: pointer; }
-.auth-msg { padding: 10px; border-radius: 8px; font-size: 13px; display: none; margin-bottom: 4px; }
-.auth-msg.error { background: #fde8e8; color: #c0392b; }
-.auth-msg.success { background: #e8f5e9; color: #27ae60; }
-.auth-msg.show { display: block; }
-
-header { background: linear-gradient(135deg, #6f4e37, #4a3423); color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-header h1 { margin: 0; font-size: 18px; }
-.user-bar { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-.user-bar #current-user { opacity: 0.9; }
-.btn-logout { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
-.btn-logout:active { background: rgba(255,255,255,0.3); }
-
-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #e0d5c7; z-index: 10; box-shadow: 0 -2px 8px rgba(0,0,0,0.05); }
-nav button { flex: 1; padding: 10px 4px; background: none; border: none; font-size: 10px; color: #8a7562; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: inherit; }
-nav button .icon { font-size: 20px; }
-nav button.active { color: #6f4e37; font-weight: 600; }
-main { padding: 16px; max-width: 600px; margin: 0 auto; }
-section { display: none; }
-section.active { display: block; animation: fadeIn 0.2s ease; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #6f4e37; }
-input, select { width: 100%; padding: 12px; border: 1px solid #e0d5c7; border-radius: 8px; font-size: 15px; background: #fdfbf8; font-family: inherit; color: #2b1d10; }
-input:focus, select:focus { outline: 2px solid #6f4e37; outline-offset: -1px; }
-.field { margin-bottom: 14px; }
-.checkbox-group { display: flex; flex-direction: column; gap: 8px; }
-.checkbox-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: #fdfbf8; border: 1px solid #e0d5c7; border-radius: 8px; cursor: pointer; }
-.checkbox-item input { width: 20px; height: 20px; margin: 0; accent-color: #6f4e37; }
-.checkbox-item span { font-size: 15px; }
-.btn { width: 100%; padding: 14px; background: #6f4e37; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; }
-.btn:active { background: #4a3423; }
-.btn-secondary { background: #a89080; }
-.btn-secondary:active { background: #8a7562; }
-.btn-danger { background: #c0392b; }
-.btn-danger:active { background: #922b21; }
-.btn-small { width: auto; padding: 6px 10px; font-size: 12px; border-radius: 6px; }
-.record { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px; background: #fdfbf8; border: 1px solid #e0d5c7; border-radius: 8px; margin-bottom: 8px; gap: 8px; }
-.record .info { flex: 1; min-width: 0; }
-.record .date { font-size: 11px; color: #8a7562; }
-.record .payer { font-weight: 600; margin: 2px 0; font-size: 14px; }
-.record .beneficiaries { font-size: 13px; color: #666; word-break: break-word; }
-.record .delete { background: none; border: none; color: #c0392b; font-size: 18px; cursor: pointer; padding: 4px 8px; line-height: 1; }
-.stats-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0e8dd; font-size: 14px; gap: 8px; }
-.stats-row:last-child { border-bottom: none; }
-.stats-row .name { font-weight: 600; }
-.stats-row .val { color: #6f4e37; font-weight: 600; white-space: nowrap; }
-.stat-card { background: #fdfbf8; border: 1px solid #e0d5c7; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-.stat-card .stat-name { font-weight: 600; font-size: 15px; margin-bottom: 8px; color: #4a3423; }
-.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
-.stat-grid > div { display: flex; flex-direction: column; gap: 2px; }
-.stat-grid span { font-size: 10px; color: #8a7562; text-transform: uppercase; letter-spacing: 0.5px; }
-.stat-grid b { font-size: 16px; color: #2b1d10; }
-.positive { color: #27ae60; font-weight: 600; }
-.negative { color: #c0392b; font-weight: 600; }
-.zero { color: #8a7562; }
-.empty { text-align: center; color: #8a7562; padding: 32px 16px; font-size: 14px; }
-.filters { display: flex; gap: 8px; margin-bottom: 12px; }
-.filters .field { flex: 1; margin: 0; }
-.quick-filters { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-h2 { font-size: 16px; margin: 0 0 12px; color: #4a3423; }
-h3 { font-size: 14px; margin: 16px 0 8px; color: #6f4e37; }
-h3:first-child { margin-top: 0; }
-.pair-select { display: flex; gap: 8px; margin-bottom: 12px; }
-.pair-select .field { flex: 1; margin: 0; }
-.pair-result { text-align: center; padding: 16px; background: #f0e8dd; border-radius: 12px; font-size: 14px; }
-.pair-result .big { font-size: 20px; margin: 10px 0; font-weight: 600; }
-.pair-result .row { margin: 4px 0; color: #4a3423; }
-.people-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.person-chip { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #f0e8dd; border-radius: 20px; font-size: 14px; }
-.person-chip button { background: none; border: none; color: #c0392b; font-size: 16px; cursor: pointer; padding: 0; width: 18px; height: 18px; line-height: 1; font-weight: 700; }
-.add-person { display: flex; gap: 8px; }
-.add-person input { flex: 1; }
-.add-person button { width: auto; padding: 12px 20px; }
-.hint { font-size: 12px; color: #8a7562; line-height: 1.5; margin-top: 8px; }
-
-.user-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0e8dd; gap: 8px; flex-wrap: wrap; }
-.user-row:last-child { border-bottom: none; }
-.user-row .user-name { font-weight: 600; font-size: 14px; }
-.user-row .user-role { font-size: 11px; color: #8a7562; text-transform: uppercase; margin-left: 4px; }
-.user-row .user-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.hidden { display: none !important; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#faf6f0;color:#2b1d10;padding-bottom:80px}
+.screen{display:none}.screen.active{display:block}
+#screen-login.active,#screen-register.active,#screen-change.active{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#6f4e37,#3d2a1c)}
+.auth-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,0.3)}
+.auth-card h1{text-align:center;margin:0 0 8px;font-size:24px;color:#6f4e37}
+.auth-card h2{text-align:center;margin:0 0 20px;font-size:14px;color:#8a7562;font-weight:400}
+.auth-card form{display:flex;flex-direction:column;gap:12px}
+.auth-card input{padding:14px;border:1px solid #e0d5c7;border-radius:8px;font-size:15px;background:#fdfbf8;font-family:inherit}
+.auth-card button[type=submit]{padding:14px;background:#6f4e37;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.auth-link{text-align:center;margin:16px 0 0;font-size:13px;color:#8a7562}
+.auth-link a{color:#6f4e37;text-decoration:none;font-weight:600;cursor:pointer}
+.auth-msg{padding:10px;border-radius:8px;font-size:13px;display:none;margin-bottom:8px;line-height:1.4}
+.auth-msg.error{background:#fde8e8;color:#c0392b}
+.auth-msg.success{background:#e8f5e9;color:#27ae60}
+.auth-msg.show{display:block}
+header{background:linear-gradient(135deg,#6f4e37,#4a3423);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:18px}
+.user-bar{display:flex;align-items:center;gap:6px;font-size:12px}
+#current-user{opacity:.9}
+#password-btn,#logout-btn{background:rgba(255,255,255,0.2);color:#fff;border:none;padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid #e0d5c7;z-index:10;box-shadow:0 -2px 8px rgba(0,0,0,0.05)}
+nav button{flex:1;padding:10px 4px;background:none;border:none;font-size:10px;color:#8a7562;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit}
+nav button .icon{font-size:20px}
+nav button.active{color:#6f4e37;font-weight:600}
+main{padding:16px;max-width:600px;margin:0 auto}
+main section{display:none}
+main section.active{display:block}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#6f4e37}
+input,select{width:100%;padding:12px;border:1px solid #e0d5c7;border-radius:8px;font-size:15px;background:#fdfbf8;font-family:inherit;color:#2b1d10}
+.field{margin-bottom:14px}
+.checkbox-group{display:flex;flex-direction:column;gap:8px}
+.checkbox-item{display:flex;align-items:center;gap:10px;padding:12px;background:#fdfbf8;border:1px solid #e0d5c7;border-radius:8px;cursor:pointer}
+.checkbox-item input{width:20px;height:20px;margin:0;accent-color:#6f4e37}
+.checkbox-item span{font-size:15px}
+.btn{width:100%;padding:14px;background:#6f4e37;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-secondary{background:#a89080}
+.btn-danger{background:#c0392b}
+.btn-small{width:auto;padding:6px 10px;font-size:12px;border-radius:6px}
+.record{display:flex;justify-content:space-between;align-items:flex-start;padding:12px;background:#fdfbf8;border:1px solid #e0d5c7;border-radius:8px;margin-bottom:8px;gap:8px}
+.record .info{flex:1;min-width:0}
+.record .date{font-size:11px;color:#8a7562}
+.record .payer{font-weight:600;margin:2px 0;font-size:14px}
+.record .beneficiaries{font-size:13px;color:#666;word-break:break-word}
+.record .delete{background:none;border:none;color:#c0392b;font-size:18px;cursor:pointer;padding:4px 8px;line-height:1}
+.stats-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8dd;font-size:14px;gap:8px}
+.stats-row:last-child{border-bottom:none}
+.stats-row .name{font-weight:600}
+.stats-row .val{color:#6f4e37;font-weight:600;white-space:nowrap}
+.stat-card{background:#fdfbf8;border:1px solid #e0d5c7;border-radius:8px;padding:12px;margin-bottom:8px}
+.stat-card .stat-name{font-weight:600;font-size:15px;margin-bottom:8px;color:#4a3423}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.stat-grid>div{display:flex;flex-direction:column;gap:2px}
+.stat-grid span{font-size:10px;color:#8a7562;text-transform:uppercase;letter-spacing:.5px}
+.stat-grid b{font-size:16px;color:#2b1d10}
+.positive{color:#27ae60;font-weight:600}.negative{color:#c0392b;font-weight:600}.zero{color:#8a7562}
+.empty{text-align:center;color:#8a7562;padding:32px 16px;font-size:14px}
+.filters{display:flex;gap:8px;margin-bottom:12px}
+.filters .field{flex:1;margin:0}
+.quick-filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+h2{font-size:16px;margin:0 0 12px;color:#4a3423}
+h3{font-size:14px;margin:16px 0 8px;color:#6f4e37}
+h3:first-child{margin-top:0}
+.pair-select{display:flex;gap:8px;margin-bottom:12px}
+.pair-select .field{flex:1;margin:0}
+.pair-result{text-align:center;padding:16px;background:#f0e8dd;border-radius:12px;font-size:14px}
+.pair-result .big{font-size:20px;margin:10px 0;font-weight:600}
+.pair-result .row{margin:4px 0;color:#4a3423}
+.people-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.person-chip{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f0e8dd;border-radius:20px;font-size:14px}
+.person-chip button{background:none;border:none;color:#c0392b;font-size:16px;cursor:pointer;padding:0;width:18px;height:18px;line-height:1;font-weight:700}
+.add-person{display:flex;gap:8px}
+.add-person input{flex:1}
+.add-person button{width:auto;padding:12px 20px}
+.hint{font-size:12px;color:#8a7562;line-height:1.5;margin-top:8px}
+.user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8dd;gap:8px;flex-wrap:wrap}
+.user-row:last-child{border-bottom:none}
+.user-row .user-name{font-weight:600;font-size:14px}
+.user-row .user-actions{display:flex;gap:6px;flex-wrap:wrap}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
 
-<!-- ===================== LOGIN ===================== -->
 <div id="screen-login" class="screen active">
   <div class="auth-card">
     <h1>☕ ContaCaffè</h1>
@@ -127,14 +105,16 @@ h3:first-child { margin-top: 0; }
       <button type="submit">Accedi</button>
     </form>
     <p class="auth-link">Non hai un account? <a id="show-register">Richiedi registrazione</a></p>
+    <p class="auth-link" style="margin-top:16px;font-size:11px">
+      <a id="reset-app" style="color:#c0392b">🔧 Problemi di accesso? Ripristina admin</a>
+    </p>
   </div>
 </div>
 
-<!-- ===================== REGISTRAZIONE ===================== -->
 <div id="screen-register" class="screen">
   <div class="auth-card">
     <h1>📝 Registrazione</h1>
-    <h2>La richiesta sarà approvata da Franco</h2>
+    <h2>La richiesta sarà approvata dall'admin</h2>
     <div id="reg-msg" class="auth-msg"></div>
     <form id="register-form">
       <input type="text" id="reg-username" placeholder="Nome utente" maxlength="30" autocomplete="username" required>
@@ -146,11 +126,10 @@ h3:first-child { margin-top: 0; }
   </div>
 </div>
 
-<!-- ===================== CAMBIO PASSWORD OBBLIGATORIO ===================== -->
 <div id="screen-change" class="screen">
   <div class="auth-card">
     <h1>🔑 Cambio password</h1>
-    <h2>Devi cambiare la password prima di continuare</h2>
+    <h2 id="change-subtitle">Devi cambiare la password prima di continuare</h2>
     <div id="change-msg" class="auth-msg"></div>
     <form id="change-form">
       <input type="password" id="change-old" placeholder="Password attuale" autocomplete="current-password" required>
@@ -158,17 +137,85 @@ h3:first-child { margin-top: 0; }
       <input type="password" id="change-new2" placeholder="Conferma nuova password" autocomplete="new-password" required>
       <button type="submit">Cambia password</button>
     </form>
+    <p class="auth-link hidden" id="change-back-wrap">
+      <a id="change-back-link">← Annulla e torna all'app</a>
+    </p>
   </div>
 </div>
 
-<!-- ===================== APP ===================== -->
 <div id="screen-app" class="screen">
   <header>
     <h1>☕ ContaCaffè</h1>
     <div class="user-bar">
       <span id="current-user"></span>
-      <button id="logout-btn" class="btn-logout">Esci</button>
+      <button id="password-btn" title="Cambia password">🔑</button>
+      <button id="logout-btn">Esci</button>
     </div>
+  </header>
+
+  <main>
+    <section id="tab-add" class="active">
+      <div class="card">
+        <h2>Registra un giro di caffè</h2>
+        <div class="field"><label for="add-date">Data</label><input type="date" id="add-date"></div>
+        <div class="field"><label for="add-payer">Chi ha pagato?</label><select id="add-payer"></select></div>
+        <div class="field"><label>Per chi?</label><div id="add-beneficiaries" class="checkbox-group"></div></div>
+        <button class="btn" id="add-submit">✓ Registra</button>
+      </div>
+    </section>
+
+    <section id="tab-list">
+      <div class="card">
+        <h2>Storico</h2>
+        <div class="filters">
+          <div class="field"><label for="list-from">Dal</label><input type="date" id="list-from"></div>
+          <div class="field"><label for="list-to">Al</label><input type="date" id="list-to"></div>
+        </div>
+        <div class="quick-filters">
+          <button class="btn btn-secondary btn-small" data-quick="all">Tutto</button>
+          <button class="btn btn-secondary btn-small" data-quick="week">Ultimi 7gg</button>
+          <button class="btn btn-secondary btn-small" data-quick="month">Mese corrente</button>
+        </div>
+        <div id="list-records"></div>
+      </div>
+    </section>
+
+    <section id="tab-stats">
+      <div class="card">
+        <h2>Periodo</h2>
+        <div class="filters">
+          <div class="field"><label for="stats-from">Dal</label><input type="date" id="stats-from"></div>
+          <div class="field"><label for="stats-to">Al</label><input type="date" id="stats-to"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Statistiche per persona</h2>
+        <div id="stats-people"></div>
+        <div class="hint"><b>Pagati</b> = totale pagati · <b>Offerti</b> = ad altri · <b>Ricevuti</b> = da altri · <b>Saldo</b> = Offerti − Ricevuti</div>
+      </div>
+      <div class="card"><h2>Pagamenti tra coppie</h2><div id="stats-pairs"></div></div>
+    </section>
+
+    <section id="tab-balance">
+      <div class="card">
+        <h2>Periodo</h2>
+        <div class="filters">
+          <div class="field"><label for="balance-from">Dal</label><input type="date" id="balance-from"></div>
+          <div class="field"><label for="balance-to">Al</label><input type="date" id="balance-to"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Saldo tra due persone</h2>
+        <div class="pair-select">
+          <div class="field"><label for="balance-a">Persona A</label><select id="balance-a"></select></div>
+          <div class="field"><label for="balance-b">Persona B</label><select id="balance-b"></select></div>
+        </div>
+        <div id="balance-result" class="pair-result"></div>
+      </div>
+      <div class="card"><h2>Bilancio complessivo</h2><div id="balance-overall"></div></div>
+      <div class="card"><h2>Pareggio suggerito</h2><div id="balance-suggest"></div></div>
+    </section>
+
     <section id="tab-users" class="admin-only-section">
       <div class="card">
         <h2>Gestione utenti</h2>
@@ -176,36 +223,24 @@ h3:first-child { margin-top: 0; }
       </div>
     </section>
 
-    <section id="tab-settings">
-      <div class="card admin-only-section">
+    <section id="tab-settings" class="admin-only-section">
+      <div class="card">
         <h2>Persone (non registrate)</h2>
-        <p class="hint" style="margin-top:0;margin-bottom:10px">Qui puoi aggiungere nomi che non hanno un account registrato (es. colleghi che non usano l'app). I registrati appaiono già automaticamente.</p>
+        <p class="hint" style="margin:0 0 10px">Nomi che non hanno un account. I registrati compaiono già da soli.</p>
         <div id="settings-people" class="people-list"></div>
         <div class="add-person">
           <input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30">
           <button class="btn" id="add-person-btn">+</button>
         </div>
       </div>
-
       <div class="card">
-        <h2>Cambia la tua password</h2>
-        <form id="voluntary-change-form">
-          <div class="field"><input type="password" id="vcp-old" placeholder="Password attuale" autocomplete="current-password" required></div>
-          <div class="field"><input type="password" id="vcp-new" placeholder="Nuova password" autocomplete="new-password" required></div>
-          <div class="field"><input type="password" id="vcp-new2" placeholder="Conferma nuova password" autocomplete="new-password" required></div>
-          <button type="submit" class="btn btn-secondary">Cambia password</button>
-        </form>
-      </div>
-
-      <div class="card admin-only-section">
         <h2>Backup</h2>
         <button class="btn btn-secondary" id="export-btn" style="margin-bottom:8px">⬇ Esporta dati (JSON)</button>
         <button class="btn btn-secondary" id="import-btn">⬆ Importa dati (JSON)</button>
         <input type="file" id="import-file" accept=".json" style="display:none">
-        <div class="hint">Include anche utenti e password hashate. Conserva il file con cura.</div>
+        <div class="hint">Include utenti e password hashate. Conserva con cura.</div>
       </div>
-
-      <div class="card admin-only-section">
+      <div class="card">
         <h2>Zona pericolosa</h2>
         <button class="btn btn-danger" id="reset-btn">🗑 Cancella tutti i dati</button>
       </div>
@@ -217,15 +252,12 @@ h3:first-child { margin-top: 0; }
     <button data-tab="list"><span class="icon">📋</span>Storico</button>
     <button data-tab="stats"><span class="icon">📊</span>Statistiche</button>
     <button data-tab="balance"><span class="icon">⚖️</span>Saldi</button>
-    <button data-tab="users" id="nav-users" class="admin-only-section"><span class="icon">👥</span>Utenti</button>
-    <button data-tab="settings"><span class="icon">⚙️</span>Impost.</button>
+    <button data-tab="users" class="admin-only-section"><span class="icon">👥</span>Utenti</button>
+    <button data-tab="settings" class="admin-only-section"><span class="icon">⚙️</span>Impost.</button>
   </nav>
 </div>
 
 <script>
-/* ============================================================
-   COSTANTI E STATO
-   ============================================================ */
 const STORAGE_KEY = 'caffe-data-v2';
 const OLD_KEY = 'caffe-data-v1';
 const SESSION_KEY = 'caffe-session-v1';
@@ -233,15 +265,8 @@ const DEFAULT_PEOPLE = ['Franco','Salvatore','Michelangelo','Maurizio','Eleonora
 const DEFAULT_ADMIN = { username: 'Franco', password: '12345' };
 const MIN_PW_LEN = 4;
 
-let state = {
-  people: [...DEFAULT_PEOPLE],
-  records: [],
-  users: []
-};
+let state = { people: [...DEFAULT_PEOPLE], records: [], users: [] };
 
-/* ============================================================
-   STORAGE
-   ============================================================ */
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -249,52 +274,42 @@ function load() {
       const d = JSON.parse(raw);
       if (Array.isArray(d.people) && Array.isArray(d.records) && Array.isArray(d.users)) {
         state = d;
+        console.log('[ContaCaffè] Stato caricato. Utenti:', state.users.length);
         return;
       }
     }
-    // Migrazione da v1
     const oldRaw = localStorage.getItem(OLD_KEY);
     if (oldRaw) {
       const d = JSON.parse(oldRaw);
       if (Array.isArray(d.people) && Array.isArray(d.records)) {
         state.people = d.people;
         state.records = d.records;
+        console.log('[ContaCaffè] Migrato da v1');
       }
     }
-  } catch (e) { console.error('Load error', e); }
+  } catch (e) { console.error('[ContaCaffè] Errore caricamento', e); }
 }
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { console.error('Save error', e); }
+  catch (e) { console.error('[ContaCaffè] Errore salvataggio', e); }
 }
 
-/* ============================================================
-   HASH PASSWORD (SHA-256 via SubtleCrypto)
-   ============================================================ */
 async function hashPassword(pw) {
   if (!window.crypto || !crypto.subtle) {
-    throw new Error('Crittografia non disponibile. Apri l\'app via HTTPS.');
+    throw new Error('Crittografia non disponibile. Apri l\'app via HTTPS (GitHub Pages è HTTPS).');
   }
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/* ============================================================
-   SESSIONE
-   ============================================================ */
 function getSession() {
   try {
-    const s = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+    const s = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
     return s ? JSON.parse(s) : null;
   } catch { return null; }
 }
-function setSession(username) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ username }));
-}
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_KEY);
-}
+function setSession(username) { localStorage.setItem(SESSION_KEY, JSON.stringify({ username })); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); }
 function getCurrentUser() {
   const s = getSession();
   if (!s) return null;
@@ -302,33 +317,20 @@ function getCurrentUser() {
 }
 function isAdmin(u) { return u && u.role === 'admin'; }
 
-/* ============================================================
-   UTILITÀ
-   ============================================================ */
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(s) { const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; }
 function filterByDate(records, from, to) {
-  return records.filter(r => {
-    if (from && r.date < from) return false;
-    if (to && r.date > to) return false;
-    return true;
-  });
+  return records.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
 }
 function toast(msg, color) {
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:'+(color||'#27ae60')+';color:white;padding:10px 20px;border-radius:20px;' +
-    'font-size:14px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2);' +
-    'pointer-events:none;';
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+(color||'#27ae60')+';color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2);pointer-events:none;';
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2200);
 }
 
-/* ============================================================
-   SCHERMATE
-   ============================================================ */
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
@@ -344,11 +346,18 @@ function clearAuthMsg(elId) {
   el.textContent = '';
 }
 
-/* ============================================================
-   BOOTSTRAP ADMIN
-   ============================================================ */
+/* ---- bootstrap admin AUTO-RIPARANTE ---- */
 async function bootstrapAdmin() {
-  if (state.users.length > 0) return;
+  if (!Array.isArray(state.users)) state.users = [];
+
+  const hasActiveAdmin = state.users.some(u => u.role === 'admin' && u.status === 'active');
+  if (hasActiveAdmin) {
+    console.log('[ContaCaffè] Admin attivo trovato, nessuna azione necessaria.');
+    return;
+  }
+
+  console.log('[ContaCaffè] Nessun admin attivo. Ricreo Franco/12345...');
+  state.users = state.users.filter(u => u.username !== DEFAULT_ADMIN.username);
   const hash = await hashPassword(DEFAULT_ADMIN.password);
   state.users.push({
     username: DEFAULT_ADMIN.username,
@@ -362,11 +371,9 @@ async function bootstrapAdmin() {
     state.people.unshift(DEFAULT_ADMIN.username);
   }
   save();
+  console.log('[ContaCaffè] Admin Franco creato. Password iniziale: 12345');
 }
 
-/* ============================================================
-   AUTENTICAZIONE
-   ============================================================ */
 async function login(username, password) {
   const user = state.users.find(u => u.username === username);
   if (!user) return { error: 'Credenziali non valide' };
@@ -377,6 +384,7 @@ async function login(username, password) {
   const hash = await hashPassword(password);
   if (hash !== user.passwordHash) return { error: 'Credenziali non valide' };
   setSession(username);
+  console.log('[ContaCaffè] Login OK:', username);
   return { user };
 }
 
@@ -389,10 +397,9 @@ async function register(username, password, password2) {
   if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
     return { error: 'Nome utente già in uso' };
   }
-  const hash = await hashPassword(password);
   state.users.push({
     username,
-    passwordHash: hash,
+    passwordHash: await hashPassword(password),
     role: 'user',
     status: 'pending',
     mustChangePassword: false,
@@ -407,17 +414,13 @@ async function changeOwnPassword(oldPw, newPw, newPw2) {
   if (!u) return { error: 'Sessione scaduta' };
   if (newPw.length < MIN_PW_LEN) return { error: 'Password troppo corta (min '+MIN_PW_LEN+')' };
   if (newPw !== newPw2) return { error: 'Le nuove password non coincidono' };
-  const oldHash = await hashPassword(oldPw);
-  if (oldHash !== u.passwordHash) return { error: 'Password attuale errata' };
+  if (await hashPassword(oldPw) !== u.passwordHash) return { error: 'Password attuale errata' };
   u.passwordHash = await hashPassword(newPw);
   u.mustChangePassword = false;
   save();
   return { ok: true };
 }
 
-/* ============================================================
-   AZIONI ADMIN
-   ============================================================ */
 function approveUser(username) {
   const u = state.users.find(x => x.username === username);
   if (!u) return;
@@ -427,9 +430,9 @@ function approveUser(username) {
   toast('Utente approvato');
 }
 function rejectUser(username) {
+  if (!confirm('Rifiutare la richiesta di ' + username + '?')) return;
   const u = state.users.find(x => x.username === username);
   if (!u) return;
-  if (!confirm('Rifiutare e disattivare la richiesta di ' + username + '?')) return;
   u.status = 'deactivated';
   save();
   toast('Richiesta rifiutata', '#c0392b');
@@ -442,7 +445,7 @@ function setUserStatus(username, status) {
   toast('Stato aggiornato');
 }
 async function adminResetPassword(username, tempPw) {
-  if (tempPw.length < MIN_PW_LEN) throw new Error('Password temporanea troppo corta');
+  if (tempPw.length < MIN_PW_LEN) throw new Error('Password temporanea troppo corta (min '+MIN_PW_LEN+')');
   const u = state.users.find(x => x.username === username);
   if (!u) throw new Error('Utente non trovato');
   u.passwordHash = await hashPassword(tempPw);
@@ -468,9 +471,6 @@ async function adminCreateUser(username, tempPw) {
   save();
 }
 
-/* ============================================================
-   RENDER UTENTE CORRENTE / RUOLO
-   ============================================================ */
 function renderCurrentUser() {
   const u = getCurrentUser();
   if (!u) return;
@@ -480,9 +480,15 @@ function renderCurrentUser() {
   });
 }
 
-/* ============================================================
-   RENDER APP (statistiche, records, saldi)
-   ============================================================ */
+function resetTabsToDefault() {
+  document.querySelectorAll('#screen-app nav button').forEach((b, i) => {
+    b.classList.toggle('active', i === 0);
+  });
+  document.querySelectorAll('#screen-app main section').forEach((s, i) => {
+    s.classList.toggle('active', i === 0);
+  });
+}
+
 function computeStats(records) {
   const paid = {}, offered = {}, received = {}, flow = {};
   state.people.forEach(p => {
@@ -509,467 +515,4 @@ function netBalance(stats) {
 }
 function suggestSettlements(net) {
   const c=[], d=[];
-  Object.keys(net).forEach(p => {
-    if (net[p] > 0) c.push({p, v: net[p]});
-    else if (net[p] < 0) d.push({p, v: -net[p]});
-  });
-  c.sort((a,b)=>b.v-a.v); d.sort((a,b)=>b.v-a.v);
-  const r=[]; let i=0, j=0;
-  while (i<c.length && j<d.length) {
-    const cc=c[i], dd=d[j], amt=Math.min(cc.v, dd.v);
-    if (amt>0) r.push({from: dd.p, to: cc.p, amount: amt});
-    cc.v-=amt; dd.v-=amt;
-    if (cc.v===0) i++;
-    if (dd.v===0) j++;
-  }
-  return r;
-}
-
-function renderPayerSelect() {
-  const sel = document.getElementById('add-payer');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">-- Seleziona --</option>' +
-    state.people.map(p => '<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
-  if (cur && state.people.includes(cur)) sel.value = cur;
-}
-function renderBeneficiaries() {
-  const c = document.getElementById('add-beneficiaries');
-  const checked = new Set([...c.querySelectorAll('input:checked')].map(i=>i.value));
-  const payer = document.getElementById('add-payer').value;
-  c.innerHTML = state.people.map(p => {
-    const isChecked = checked.has(p) || p === payer;
-    return '<label class="checkbox-item"><input type="checkbox" value="'+esc(p)+'" '+(isChecked?'checked':'')+'><span>'+esc(p)+'</span></label>';
-  }).join('');
-}
-function renderRecords() {
-  const from = document.getElementById('list-from').value;
-  const to = document.getElementById('list-to').value;
-  const f = filterByDate(state.records, from, to)
-    .sort((a,b)=> b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));
-  const c = document.getElementById('list-records');
-  if (f.length === 0) { c.innerHTML = '<div class="empty">Nessun record nel periodo selezionato</div>'; return; }
-  c.innerHTML = f.map(r => {
-    const count = r.beneficiaries.length;
-    const list = r.beneficiaries.map(esc).join(', ');
-    return '<div class="record"><div class="info"><div class="date">'+fmtDate(r.date)+'</div><div class="payer">'+esc(r.payer)+' ha pagato '+count+' caffè</div><div class="beneficiaries">per: '+list+'</div></div><button class="delete" data-id="'+esc(String(r.id))+'">✕</button></div>';
-  }).join('');
-  c.querySelectorAll('.delete').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (!confirm('Eliminare questo record?')) return;
-      state.records = state.records.filter(r => String(r.id) !== btn.dataset.id);
-      save(); renderRecords(); renderStats(); renderBalance();
-    });
-  });
-}
-function renderStats() {
-  const from = document.getElementById('stats-from').value;
-  const to = document.getElementById('stats-to').value;
-  const f = filterByDate(state.records, from, to);
-  const stats = computeStats(f);
-  const peopleEl = document.getElementById('stats-people');
-  if (f.length === 0) {
-    peopleEl.innerHTML = '<div class="empty">Nessun dato nel periodo</div>';
-  } else {
-    peopleEl.innerHTML = state.people.map(p => {
-      const net = (stats.offered[p]||0) - (stats.received[p]||0);
-      const nc = net>0?'positive':net<0?'negative':'zero';
-      const nt = net>0?'+'+net:String(net);
-      return '<div class="stat-card"><div class="stat-name">'+esc(p)+'</div><div class="stat-grid"><div><span>Pagati</span><b>'+(stats.paid[p]||0)+'</b></div><div><span>Offerti</span><b>'+(stats.offered[p]||0)+'</b></div><div><span>Ricevuti</span><b>'+(stats.received[p]||0)+'</b></div><div><span>Saldo</span><b class="'+nc+'">'+nt+'</b></div></div></div>';
-    }).join('');
-  }
-  const pairsEl = document.getElementById('stats-pairs');
-  const pairs = [];
-  state.people.forEach(a => state.people.forEach(b => {
-    if (a !== b && (stats.flow[a]?.[b]||0) > 0) pairs.push({a, b, n: stats.flow[a][b]});
-  }));
-  if (pairs.length === 0) {
-    pairsEl.innerHTML = '<div class="empty">Nessun pagamento tra persone nel periodo</div>';
-  } else {
-    pairs.sort((x,y)=>y.n-x.n);
-    pairsEl.innerHTML = pairs.map(x => '<div class="stats-row"><span>'+esc(x.a)+' ha pagato a <b>'+esc(x.b)+'</b></span><span class="val">'+x.n+' caffè</span></div>').join('');
-  }
-}
-function renderBalanceSelects() {
-  ['balance-a','balance-b'].forEach(id => {
-    const sel = document.getElementById(id);
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
-    if (state.people.includes(cur)) sel.value = cur;
-  });
-}
-function renderBalance() {
-  const from = document.getElementById('balance-from').value;
-  const to = document.getElementById('balance-to').value;
-  const f = filterByDate(state.records, from, to);
-  const stats = computeStats(f);
-  const a = document.getElementById('balance-a').value;
-  const b = document.getElementById('balance-b').value;
-  const resultEl = document.getElementById('balance-result');
-  if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>';
-  else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona due persone diverse</span>';
-  else {
-    const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA;
-    let msg, cls;
-    if (diff === 0) { msg='In pari 🤝'; cls='zero'; }
-    else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; }
-    else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; }
-    resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>';
-  }
-  const net = netBalance(stats);
-  const overallEl = document.getElementById('balance-overall');
-  if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato nel periodo</div>';
-  else {
-    overallEl.innerHTML = state.people.map(p => {
-      const v = net[p];
-      const cls = v>0?'positive':v<0?'negative':'zero';
-      const txt = v>0?'+'+v:String(v);
-      const desc = v>0?'in credito':v<0?'in debito':'in pari';
-      return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>';
-    }).join('');
-  }
-  const suggestEl = document.getElementById('balance-suggest');
-  const settlements = suggestSettlements(net);
-  if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio necessario 🎉</div>';
-  else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join('');
-}
-function renderSettings() {
-  const u = getCurrentUser();
-  if (!isAdmin(u)) return;
-  const c = document.getElementById('settings-people');
-  c.innerHTML = state.people.map(p => {
-    const isRegistered = state.users.some(x => x.username === p);
-    const removeBtn = isRegistered ? '' : '<button data-name="'+esc(p)+'" title="Rimuovi">✕</button>';
-    return '<div class="person-chip">'+esc(p)+(isRegistered?' <small style="color:#8a7562;font-size:10px">(registrato)</small>':'')+removeBtn+'</div>';
-  }).join('');
-  c.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const name = btn.dataset.name;
-      if (!confirm('Rimuovere "'+name+'"?')) return;
-      state.people = state.people.filter(p => p !== name);
-      save(); renderAll();
-    });
-  });
-}
-
-/* ============================================================
-   RENDER UTENTI (admin)
-   ============================================================ */
-function renderUsers() {
-  const u = getCurrentUser();
-  if (!isAdmin(u)) return;
-  const container = document.getElementById('users-content');
-  const pending = state.users.filter(x => x.status === 'pending');
-  const active = state.users.filter(x => x.status === 'active' && x.role !== 'admin');
-  const suspended = state.users.filter(x => x.status === 'suspended');
-  const deactivated = state.users.filter(x => x.status === 'deactivated');
-
-  let html = '';
-
-  if (pending.length > 0) {
-    html += '<h3>Richieste in attesa ('+pending.length+')</h3>';
-    html += pending.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="approve" data-user="'+esc(x.username)+'">✓ Approva</button><button class="btn-small btn-danger" data-action="reject" data-user="'+esc(x.username)+'">✕ Rifiuta</button></div></div>').join('');
-  }
-  if (active.length > 0) {
-    html += '<h3>Utenti attivi ('+active.length+')</h3>';
-    html += active.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn-secondary" data-action="reset-pw" data-user="'+esc(x.username)+'">🔑 Reset pwd</button><button class="btn-small btn-secondary" data-action="suspend" data-user="'+esc(x.username)+'">⏸ Sospendi</button><button class="btn-small btn-danger" data-action="deactivate" data-user="'+esc(x.username)+'">🚫 Disattiva</button></div></div>').join('');
-  }
-  if (suspended.length > 0) {
-    html += '<h3>Sospesi ('+suspended.length+')</h3>';
-    html += suspended.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-user="'+esc(x.username)+'">▶ Riattiva</button><button class="btn-small btn-danger" data-action="deactivate" data-user="'+esc(x.username)+'">🚫 Disattiva</button></div></div>').join('');
-  }
-  if (deactivated.length > 0) {
-    html += '<h3>Disattivati ('+deactivated.length+')</h3>';
-    html += deactivated.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-user="'+esc(x.username)+'">▶ Riattiva</button></div></div>').join('');
-  }
-  if (pending.length + active.length + suspended.length + deactivated.length === 0) {
-    html += '<div class="empty">Nessun utente registrato</div>';
-  }
-
-  html += '<h3>Aggiungi utente manualmente</h3>' +
-    '<p class="hint" style="margin-top:0;margin-bottom:8px">L\'utente sarà attivo subito, ma dovrà cambiare la password al primo accesso.</p>' +
-    '<div class="add-person">' +
-      '<input type="text" id="admin-new-username" placeholder="Nome utente" maxlength="30">' +
-      '<input type="text" id="admin-new-password" placeholder="Password temporanea">' +
-      '<button class="btn" id="admin-create-user">+</button>' +
-    '</div>' +
-    '<div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
-
-  container.innerHTML = html;
-
-  container.querySelectorAll('button[data-action]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const action = btn.dataset.action;
-      const user = btn.dataset.user;
-      if (action === 'approve') approveUser(user);
-      else if (action === 'reject') rejectUser(user);
-      else if (action === 'suspend') setUserStatus(user, 'suspended');
-      else if (action === 'deactivate') { if (confirm('Disattivare '+user+'?')) setUserStatus(user, 'deactivated'); }
-      else if (action === 'activate') setUserStatus(user, 'active');
-      else if (action === 'reset-pw') {
-        const temp = prompt('Nuova password temporanea per '+user+' (min '+MIN_PW_LEN+' caratteri):');
-        if (!temp) return;
-        try {
-          await adminResetPassword(user, temp);
-          alert('Password reimpostata. L\'utente dovrà cambiarla al primo accesso.');
-        } catch (e) { alert('Errore: ' + e.message); }
-      }
-      renderUsers(); renderAll();
-    });
-  });
-
-  const createBtn = document.getElementById('admin-create-user');
-  if (createBtn) {
-    createBtn.addEventListener('click', async () => {
-      const un = document.getElementById('admin-new-username').value;
-      const pw = document.getElementById('admin-new-password').value;
-      const msgEl = document.getElementById('admin-new-msg');
-      try {
-        await adminCreateUser(un, pw);
-        msgEl.style.color = '#27ae60';
-        msgEl.textContent = '✓ Utente creato';
-        renderUsers(); renderAll();
-      } catch (e) {
-        msgEl.style.color = '#c0392b';
-        msgEl.textContent = '✗ ' + e.message;
-      }
-    });
-  }
-}
-
-function renderAll() {
-  renderPayerSelect(); renderBeneficiaries(); renderRecords();
-  renderStats(); renderBalanceSelects(); renderBalance();
-  renderSettings(); renderUsers();
-}
-
-/* ============================================================
-   FLUSSO SCHERMATE
-   ============================================================ */
-function updateScreens() {
-  const u = getCurrentUser();
-  if (!u) {
-    showScreen('login');
-    return;
-  }
-  if (u.mustChangePassword) {
-    showScreen('change');
-    return;
-  }
-  showScreen('app');
-  renderCurrentUser();
-  renderAll();
-}
-
-/* ============================================================
-   NAVIGAZIONE TAB
-   ============================================================ */
-function setupNav() {
-  document.querySelectorAll('#screen-app nav button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    });
-  });
-}
-
-/* ============================================================
-   EVENTI AUTH
-   ============================================================ */
-function setupAuthEvents() {
-  document.getElementById('show-register').addEventListener('click', () => {
-    clearAuthMsg('login-msg'); clearAuthMsg('reg-msg');
-    showScreen('register');
-  });
-  document.getElementById('show-login').addEventListener('click', () => {
-    clearAuthMsg('login-msg'); clearAuthMsg('reg-msg');
-    showScreen('login');
-  });
-
-  document.getElementById('login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAuthMsg('login-msg');
-    const un = document.getElementById('login-username').value.trim();
-    const pw = document.getElementById('login-password').value;
-    try {
-      const res = await login(un, pw);
-      if (res.error) { showAuthMsg('login-msg', res.error, 'error'); return; }
-      document.getElementById('login-password').value = '';
-      updateScreens();
-    } catch (err) {
-      showAuthMsg('login-msg', 'Errore: ' + err.message, 'error');
-    }
-  });
-
-  document.getElementById('register-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAuthMsg('reg-msg');
-    const un = document.getElementById('reg-username').value;
-    const pw = document.getElementById('reg-password').value;
-    const pw2 = document.getElementById('reg-password2').value;
-    try {
-      const res = await register(un, pw, pw2);
-      if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); return; }
-      showAuthMsg('reg-msg', '✓ Richiesta inviata! Attendi l\'approvazione di Franco.', 'success');
-      document.getElementById('register-form').reset();
-    } catch (err) {
-      showAuthMsg('reg-msg', 'Errore: ' + err.message, 'error');
-    }
-  });
-
-  document.getElementById('change-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAuthMsg('change-msg');
-    const oldPw = document.getElementById('change-old').value;
-    const newPw = document.getElementById('change-new').value;
-    const newPw2 = document.getElementById('change-new2').value;
-    try {
-      const res = await changeOwnPassword(oldPw, newPw, newPw2);
-      if (res.error) { showAuthMsg('change-msg', res.error, 'error'); return; }
-      document.getElementById('change-form').reset();
-      toast('✓ Password cambiata');
-      updateScreens();
-    } catch (err) {
-      showAuthMsg('change-msg', 'Errore: ' + err.message, 'error');
-    }
-  });
-
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    if (!confirm('Uscire dall\'account?')) return;
-    clearSession();
-    document.getElementById('login-username').value = '';
-    document.getElementById('login-password').value = '';
-    clearAuthMsg('login-msg');
-    updateScreens();
-  });
-}
-
-/* ============================================================
-   EVENTI APP (form, filtri, etc.)
-   ============================================================ */
-function setupAppEvents() {
-  document.getElementById('add-payer').addEventListener('change', e => {
-    const payer = e.target.value;
-    if (!payer) return;
-    const c = document.getElementById('add-beneficiaries');
-    const cb = [...c.querySelectorAll('input')].find(i => i.value === payer);
-    if (cb) cb.checked = true;
-  });
-  document.getElementById('add-submit').addEventListener('click', () => {
-    const date = document.getElementById('add-date').value;
-    const payer = document.getElementById('add-payer').value;
-    const beneficiaries = [...document.querySelectorAll('#add-beneficiaries input:checked')].map(i => i.value);
-    if (!date) return alert('Inserisci una data');
-    if (!payer) return alert('Seleziona chi ha pagato');
-    if (beneficiaries.length === 0) return alert('Seleziona almeno una persona');
-    state.records.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,8), date, payer, beneficiaries });
-    save();
-    document.getElementById('add-payer').value = '';
-    document.getElementById('add-date').value = today();
-    document.querySelectorAll('#add-beneficiaries input').forEach(i => i.checked = false);
-    toast('✓ Registrato');
-    renderRecords(); renderStats(); renderBalance();
-  });
-
-  ['list-from','list-to'].forEach(id => document.getElementById(id).addEventListener('change', renderRecords));
-  ['stats-from','stats-to'].forEach(id => document.getElementById(id).addEventListener('change', renderStats));
-  ['balance-from','balance-to','balance-a','balance-b'].forEach(id => document.getElementById(id).addEventListener('change', renderBalance));
-
-  document.querySelectorAll('[data-quick]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const now = new Date();
-      const to = today();
-      let from = '';
-      if (btn.dataset.quick === 'week') {
-        const d = new Date(now); d.setDate(d.getDate()-7);
-        from = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      } else if (btn.dataset.quick === 'month') {
-        from = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
-      }
-      document.getElementById('list-from').value = from;
-      document.getElementById('list-to').value = to;
-      renderRecords();
-    });
-  });
-
-  document.getElementById('add-person-btn').addEventListener('click', () => {
-    const input = document.getElementById('new-person');
-    const name = input.value.trim();
-    if (!name) return;
-    if (state.people.includes(name)) return alert('Nome già esistente');
-    state.people.push(name);
-    input.value = '';
-    save(); renderAll(); toast('Persona aggiunta');
-  });
-  document.getElementById('new-person').addEventListener('keypress', e => {
-    if (e.key === 'Enter') document.getElementById('add-person-btn').click();
-  });
-
-  document.getElementById('voluntary-change-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const oldPw = document.getElementById('vcp-old').value;
-    const newPw = document.getElementById('vcp-new').value;
-    const newPw2 = document.getElementById('vcp-new2').value;
-    try {
-      const res = await changeOwnPassword(oldPw, newPw, newPw2);
-      if (res.error) { toast('✗ ' + res.error, '#c0392b'); return; }
-      document.getElementById('voluntary-change-form').reset();
-      toast('✓ Password cambiata');
-    } catch (err) {
-      toast('✗ ' + err.message, '#c0392b');
-    }
-  });
-
-  document.getElementById('export-btn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'caffe-'+today()+'.json'; a.click();
-    URL.revokeObjectURL(url);
-    toast('Esportato');
-  });
-  document.getElementById('import-btn').addEventListener('click', () => {
-    document.getElementById('import-file').click();
-  });
-  document.getElementById('import-file').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        if (!Array.isArray(data.people) || !Array.isArray(data.records) || !Array.isArray(data.users)) {
-          throw new Error('Formato non valido');
-        }
-        if (!confirm('Sovrascrivere i dati attuali (inclusi utenti)?')) return;
-        state = data;
-        save(); renderAll(); toast('Importato');
-      } catch (err) { alert('Errore: ' + err.message); }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
-
-  document.getElementById('reset-btn').addEventListener('click', () => {
-    if (!confirm('Cancellare TUTTI i dati (inclusi utenti)?')) return;
-    if (!confirm('Sei sicuro? Verrai disconnesso.')) return;
-    localStorage.removeItem(STORAGE_KEY);
-    clearSession();
-    location.reload();
-  });
-}
-
-/* ============================================================
-   INIT
-   ============================================================ */
-async function init() {
-  load();
-  await bootstrapAdmin();
-  document.getElementById('add-date').value = today();
-  setupNav();
-  setupAuthEvents();
-  setupAppEvents();
-  updateScreens();
-}
-init();
+  Object.keys(net).forEach(p => { if (net
