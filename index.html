@@ -500,37 +500,60 @@ async function handleLogout() {
   showScreen('login');
 }
 
+// PROTEZIONE: se c'è un utente loggato, lo facciamo entrare SUBITO, 
+// e leggiamo i dati in background senza bloccarlo o disconnetterlo se Firestore è lento.
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // Aspettiamo mezzo secondo per dare il tempo a Firebase di sincronizzare
-    setTimeout(async () => {
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
+    // Mostriamo subito la schermata app di base per non far vedere il login
+    showScreen('app'); 
+    
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
         
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.status === 'pending') { await signOut(auth); showAuthMsg('login-msg', 'In attesa di approvazione', 'error'); return; }
-          if (data.status === 'suspended' || data.status === 'deactivated') { await signOut(auth); showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error'); return; }
-          
-          state.currentUser = { username: data.username, role: data.role, mustChangePassword: data.mustChangePassword, status: data.status };
-          
-          if (data.username === 'Franco' && data.role !== 'admin') {
-            await setDoc(docRef, { role: 'admin' }, { merge: true });
-            state.currentUser.role = 'admin';
-          }
-
-          startListeners();
-          renderCurrentUser();
-        } else {
-          showAuthMsg('login-msg', 'Profilo non trovato su Firestore.', 'error');
+        // Se c'è un problema di stato, avvisiamo ma non buttiamo fuori se non è necessario
+        if (data.status === 'suspended' || data.status === 'deactivated') {
+          showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error');
           await signOut(auth);
+          return;
         }
-      } catch (e) { 
-        console.error(e); 
-        showAuthMsg('login-msg', 'Errore di connessione: ' + e.message, 'error'); 
+        
+        state.currentUser = { username: data.username, role: data.role, mustChangePassword: data.mustChangePassword, status: data.status };
+        
+        if (data.username === 'Franco' && data.role !== 'admin') {
+          await setDoc(docRef, { role: 'admin' }, { merge: true });
+          state.currentUser.role = 'admin';
+        }
+
+        // Avviamo i listener per caricare i dati veri
+        startListeners();
+        renderCurrentUser();
+        
+        // Gestiamo la schermata di cambio password se necessario
+        if (state.currentUser.mustChangePassword) { 
+          showScreen('change'); 
+          document.getElementById('change-back-wrap').classList.add('hidden'); 
+        } else { 
+          resetTabsToDefault(); 
+          showScreen('app'); 
+          renderAll(); 
+        }
+      } else {
+        // Se non c'è il documento, diamo un utente di default per non bloccarlo
+        state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
+        renderCurrentUser();
+        showScreen('app');
       }
-    }, 500);
+    } catch (e) { 
+      console.error("Errore Firestore in background:", e); 
+      // Se c'è un errore di rete, entriamo lo stesso in modalità base
+      state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
+      renderCurrentUser();
+      showScreen('app');
+    }
   } else {
     state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
   }
