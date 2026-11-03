@@ -286,7 +286,6 @@ function setLoading(active, text = 'Connessione a Firebase...') {
   if (active) { 
     txt.textContent = text; 
     overlay.classList.add('active'); 
-    // Timer di sicurezza: se qualcosa si blocca, dopo 6 secondi chiude la rotellina e avvisa
     loadingTimeout = setTimeout(() => {
       overlay.classList.remove('active');
       if (document.getElementById('screen-login').classList.contains('active')) {
@@ -499,6 +498,7 @@ async function handleLogout() {
   showScreen('login');
 }
 
+// === FIX: aspettiamo che Firebase confermi il login prima di leggere i dati ===
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     setLoading(true, 'Caricamento profilo...');
@@ -511,16 +511,16 @@ onAuthStateChanged(auth, async (user) => {
         if (data.status === 'suspended' || data.status === 'deactivated') { await signOut(auth); showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error'); setLoading(false); return; }
         
         state.currentUser = { username: data.username, role: data.role, mustChangePassword: data.mustChangePassword, status: data.status };
-        startListeners();
         
+        // Forza il ruolo admin per Franco se non lo è già
         if (data.username === 'Franco' && data.role !== 'admin') {
           await setDoc(docRef, { role: 'admin' }, { merge: true });
           state.currentUser.role = 'admin';
         }
 
+        // Avvia i listener SOLO DOPO che l'utente è confermato
+        startListeners();
         renderCurrentUser();
-        if (state.currentUser.mustChangePassword) { showScreen('change'); document.getElementById('change-back-wrap').classList.add('hidden'); } 
-        else { resetTabsToDefault(); showScreen('app'); renderAll(); }
       } else {
         showAuthMsg('login-msg', 'Profilo non trovato su Firestore.', 'error');
         await signOut(auth);
