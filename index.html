@@ -27,8 +27,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 .auth-msg.show{display:block}
 header{background:linear-gradient(135deg,#6f4e37,#4a3423);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;justify-content:space-between;align-items:center}
 header h1{margin:0;font-size:18px}
-.user-bar{display:flex;align-items:center;gap:6px;font-size:12px}
-#current-user{opacity:.9}
+.user-bar{display:flex;align-items:center;gap:8px;font-size:13px}
+#current-user{opacity:.95; font-weight:500;}
 #password-btn,#logout-btn{background:rgba(255,255,255,0.2);color:#fff;border:none;padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid #e0d5c7;z-index:10;box-shadow:0 -2px 8px rgba(0,0,0,0.05)}
 nav button{flex:1;padding:10px 4px;background:none;border:none;font-size:10px;color:#8a7562;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit}
@@ -221,6 +221,17 @@ h3:first-child{margin-top:0}
         <div id="users-content"></div>
       </div>
     </section>
+    <section id="tab-settings" class="admin-only-section">
+      <div class="card">
+        <h2>Backup (Admin)</h2>
+        <p class="hint" style="margin:0 0 10px">I dati sono sul cloud Firebase. Esporta per backup.</p>
+        <button class="btn btn-secondary" id="export-btn" style="margin-bottom:8px">⬇ Esporta dati</button>
+      </div>
+      <div class="card">
+        <h2>Zona pericolosa</h2>
+        <button class="btn btn-danger" id="reset-btn">🗑 Cancella tutti i dati</button>
+      </div>
+    </section>
   </main>
   <nav>
     <button data-tab="add" class="active"><span class="icon">➕</span>Nuovo</button>
@@ -228,6 +239,7 @@ h3:first-child{margin-top:0}
     <button data-tab="stats"><span class="icon">📊</span>Statistiche</button>
     <button data-tab="balance"><span class="icon">⚖️</span>Saldi</button>
     <button data-tab="users" class="admin-only-section"><span class="icon">👥</span>Utenti</button>
+    <button data-tab="settings" class="admin-only-section"><span class="icon">⚙️</span>Impost.</button>
   </nav>
 </div>
 
@@ -389,7 +401,9 @@ async function adminCreateUser(username, tempPw) {
 
 function renderCurrentUser() {
   if (!state.currentUser) return;
+  // Aggiorna il nome in alto
   document.getElementById('current-user').textContent = state.currentUser.username + (state.currentUser.role === 'admin' ? ' (admin)' : '');
+  // Mostra/Nasconde le sezioni riservate all'admin
   document.querySelectorAll('.admin-only-section').forEach(el => el.classList.toggle('hidden', !isAdmin()));
 }
 function resetTabsToDefault() { document.querySelectorAll('#screen-app nav button').forEach((b, i) => b.classList.toggle('active', i === 0)); document.querySelectorAll('#screen-app main section').forEach((s, i) => s.classList.toggle('active', i === 0)); }
@@ -410,12 +424,10 @@ function renderStats() { const from = document.getElementById('stats-from').valu
 function renderBalanceSelects() { ['balance-a','balance-b'].forEach(id => { const sel = document.getElementById(id); const cur = sel.value; sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (state.people.includes(cur)) sel.value = cur; }); }
 function renderBalance() { const from = document.getElementById('balance-from').value; const to = document.getElementById('balance-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const a = document.getElementById('balance-a').value; const b = document.getElementById('balance-b').value; const resultEl = document.getElementById('balance-result'); if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>'; else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona diverse</span>'; else { const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA; let msg, cls; if (diff === 0) { msg='In pari 🤝'; cls='zero'; } else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; } else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; } resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>'; } const net = netBalance(stats); const overallEl = document.getElementById('balance-overall'); if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato</div>'; else { overallEl.innerHTML = state.people.map(p => { const v = net[p]; const cls = v>0?'positive':v<0?'negative':'zero'; const txt = v>0?'+'+v:String(v); const desc = v>0?'in credito':v<0?'in debito':'in pari'; return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>'; }).join(''); } const suggestEl = document.getElementById('balance-suggest'); const settlements = suggestSettlements(net); if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio 🎉</div>'; else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join(''); }
 
-// NUOVO: Gestione unificata di TUTTI (registrati e non)
+// Gestione unificata di TUTTI (registrati e non)
 function renderUsers() {
   if (!isAdmin()) return;
   const container = document.getElementById('users-content');
-  
-  // Uniamo tutti i nomi
   const tuttiINomi = [...new Set([...state.people, ...state.users.map(u => u.username)])];
   
   let html = '<h3>Tutti i nominativi</h3>';
@@ -443,7 +455,6 @@ function renderUsers() {
           statoBadge = '<span class="badge nonreg">Non è utente</span>';
           azioni = `<button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑 Elimina</button>`;
       } else {
-          // È uno dei nomi di default (Franco, Salvatore, ecc.) ma non ha ancora un account
           statoBadge = '<span class="badge nonreg">Non è utente</span>';
       }
       
@@ -454,7 +465,7 @@ function renderUsers() {
   });
   
   html += '<h3>Aggiungi utente (Account reale)</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
-  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account. Viene salvato solo sul tuo dispositivo.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
+  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
 
   container.innerHTML = html;
 
@@ -554,8 +565,6 @@ function setupAppEvents() {
       document.getElementById('list-from').value = from; document.getElementById('list-to').value = to; renderRecords();
     });
   });
-
-  // Rimossi i vecchi listener per add-person e reset (ora sono dentro renderUsers)
 }
 
 async function handleLogout() {
