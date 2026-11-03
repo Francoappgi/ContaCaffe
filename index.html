@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#6f4e37">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>☕ ContaCaffè</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236f4e37'/%3E%3Cpath d='M148 215 h216 v110 a80 80 0 0 1 -80 80 h-56 a80 80 0 0 1 -80 -80 z' fill='%23fdfbf8'/%3E%3Cellipse cx='256' cy='215' rx='108' ry='14' fill='%236f4e37'/%3E%3C/svg%3E">
 <style>
@@ -263,7 +265,6 @@ const ADMIN_EMAIL = 'franco@contacaffe.local';
 
 let state = { currentUser: null, people: [], records: [], users: [] };
 let unsubUsers = null, unsubRecords = null, unsubPeople = null;
-let isRegistering = false; 
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -333,23 +334,18 @@ async function handleRegister(username, password, password2) {
   if (!username || username.length < 2) return { error: 'Nome troppo corto' };
   if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (password !== password2) return { error: 'Le password non coincidono' };
-  
-  isRegistering = true;
   try {
     const usersSnap = await getDocs(collection(db, 'users'));
-    if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) {
-        isRegistering = false;
-        return { error: 'Nome utente già in uso' };
-    }
-    const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
+    if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) return { error: 'Nome utente già in uso' };
+    // Usa una secondary app per non toccare la sessione corrente
+    const regAppName = 'Register_' + Date.now();
+    const regApp = initializeApp(firebaseConfig, regAppName);
+    const regAuth = getAuth(regApp);
+    const cred = await createUserWithEmailAndPassword(regAuth, usernameToEmail(username), password);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
-    await signOut(auth); 
-    isRegistering = false;
+    await signOut(regAuth);
     return { ok: true };
-  } catch (e) { 
-    isRegistering = false;
-    return { error: 'Errore: ' + e.message }; 
-  }
+  } catch (e) { return { error: 'Errore: ' + e.message }; }
 }
 
 async function handleChangePassword(oldPw, newPw, newPw2) {
@@ -372,9 +368,13 @@ async function setUserStatus(userId, status) { await setDoc(doc(db, 'users', use
 async function adminResetPassword(userId, tempPw) { if (tempPw.length < MIN_PW_LEN) throw new Error('Troppo corta'); await setDoc(doc(db, 'users', userId), { mustChangePassword: true, tempPassword: tempPw }, { merge: true }); toast('Reset richiesto. Chiedi all\'utente di usare questa password.'); }
 async function adminCreateUser(username, tempPw) {
   username = username.trim();
+  if (!username || username.length < 2) throw new Error('Nome troppo corto');
+  if (!tempPw || tempPw.length < MIN_PW_LEN) throw new Error('Password troppo corta (min ' + MIN_PW_LEN + ')');
   if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('Già esistente');
   try {
-    const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+    // Nome univoco per evitare conflitti se la funzione viene chiamata più volte
+    const appName = 'AdminCreate_' + Date.now();
+    const secondaryApp = initializeApp(firebaseConfig, appName);
     const secondaryAuth = getAuth(secondaryApp);
     const cred = await createUserWithEmailAndPassword(secondaryAuth, usernameToEmail(username), tempPw);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'active', mustChangePassword: true, createdAt: serverTimestamp() });
@@ -491,20 +491,9 @@ function setupAppEvents() {
     });
   });
 
-  // AGGIUNTA PERSONA: usiamo un sistema che non si blocca mai
   document.getElementById('add-person-btn').addEventListener('click', async () => {
     const input = document.getElementById('new-person'); const name = input.value.trim(); if (!name) return; if (state.people.includes(name)) return alert('Esiste già');
-    
-    setLoading(true);
-    try {
-        // Usiamo un ID basato sul nome per evitare conflitti
-        const docId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        await setDoc(doc(db, 'people', docId), { name: name });
-        input.value = ''; toast('✓ Aggiunto');
-    } catch(e) {
-        alert("Errore: " + e.message);
-    }
-    setLoading(false);
+    await addDoc(collection(db, 'people'), { name }); input.value = ''; toast('Aggiunto');
   });
 
   document.getElementById('reset-btn').addEventListener('click', () => { alert('Per svuotare il database, fallo dalla console Firebase (Firestore).'); });
@@ -519,11 +508,11 @@ async function handleLogout() {
   showScreen('login');
 }
 
+// PROTEZIONE: se c'è un utente loggato, lo facciamo entrare SUBITO, 
+// e leggiamo i dati in background senza bloccarlo o disconnetterlo se Firestore è lento.
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // Se stiamo attivamente registrando un nuovo utente, aspettiamo che finisca
-    if (isRegistering) return;
-
+    // Mostriamo subito la schermata app di base per non far vedere il login
     showScreen('app'); 
     
     try {
@@ -533,6 +522,7 @@ onAuthStateChanged(auth, async (user) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
+        // Se c'è un problema di stato, avvisiamo ma non buttiamo fuori se non è necessario
         if (data.status === 'suspended' || data.status === 'deactivated') {
           showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error');
           await signOut(auth);
@@ -546,9 +536,11 @@ onAuthStateChanged(auth, async (user) => {
           state.currentUser.role = 'admin';
         }
 
+        // Avviamo i listener per caricare i dati veri
         startListeners();
         renderCurrentUser();
         
+        // Gestiamo la schermata di cambio password se necessario
         if (state.currentUser.mustChangePassword) { 
           showScreen('change'); 
           document.getElementById('change-back-wrap').classList.add('hidden'); 
@@ -558,21 +550,20 @@ onAuthStateChanged(auth, async (user) => {
           renderAll(); 
         }
       } else {
+        // Se non c'è il documento, diamo un utente di default per non bloccarlo
         state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
         renderCurrentUser();
         showScreen('app');
       }
     } catch (e) { 
       console.error("Errore Firestore in background:", e); 
+      // Se c'è un errore di rete, entriamo lo stesso in modalità base
       state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
       renderCurrentUser();
       showScreen('app');
     }
   } else {
-    // Se l'utente è nullo e non stiamo registrando, mostriamo il login
-    if (!isRegistering) {
-        state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
-    }
+    state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
   }
 });
 
@@ -584,7 +575,7 @@ async function init() {
     const usersSnap = await getDocs(collection(db, 'users'));
     const adminExists = usersSnap.docs.some(d => d.data().role === 'admin');
     if (!adminExists) {
-      const secondaryApp = initializeApp(firebaseConfig, 'SecondaryInit');
+      const secondaryApp = initializeApp(firebaseConfig, 'SecondaryInit_' + Date.now());
       const secondaryAuth = getAuth(secondaryApp);
       const cred = await createUserWithEmailAndPassword(secondaryAuth, ADMIN_EMAIL, '123456');
       await setDoc(doc(db, 'users', cred.user.uid), {
