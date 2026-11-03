@@ -90,9 +90,15 @@ h3:first-child{margin-top:0}
 .user-row .user-name{font-weight:600;font-size:14px}
 .user-row .user-actions{display:flex;gap:6px;flex-wrap:wrap}
 .hidden{display:none!important}
+#loading-overlay{position:fixed;inset:0;background:rgba(250,246,240,0.95);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:999}
+#loading-overlay.active{display:flex}
+.spinner{width:40px;height:40px;border:4px solid #e0d5c7;border-top-color:#6f4e37;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
+<div id="loading-overlay"><div class="spinner"></div><div style="color:#6f4e37;font-size:14px">Connessione a Firebase...</div></div>
 
 <div id="screen-login" class="screen active">
   <div class="auth-card">
@@ -105,9 +111,6 @@ h3:first-child{margin-top:0}
       <button type="submit">Accedi</button>
     </form>
     <p class="auth-link">Non hai un account? <a id="show-register">Richiedi registrazione</a></p>
-    <p class="auth-link" style="margin-top:16px;font-size:11px">
-      <a id="reset-app" style="color:#c0392b">🔧 Problemi di accesso? Ripristina admin</a>
-    </p>
   </div>
 </div>
 
@@ -118,7 +121,7 @@ h3:first-child{margin-top:0}
     <div id="reg-msg" class="auth-msg"></div>
     <form id="register-form">
       <input type="text" id="reg-username" placeholder="Nome utente" maxlength="30" autocomplete="username" required>
-      <input type="password" id="reg-password" placeholder="Password (min 4 caratteri)" autocomplete="new-password" required>
+      <input type="password" id="reg-password" placeholder="Password (min 6 caratteri)" autocomplete="new-password" required>
       <input type="password" id="reg-password2" placeholder="Conferma password" autocomplete="new-password" required>
       <button type="submit">Invia richiesta</button>
     </form>
@@ -133,13 +136,11 @@ h3:first-child{margin-top:0}
     <div id="change-msg" class="auth-msg"></div>
     <form id="change-form">
       <input type="password" id="change-old" placeholder="Password attuale" autocomplete="current-password" required>
-      <input type="password" id="change-new" placeholder="Nuova password (min 4 caratteri)" autocomplete="new-password" required>
+      <input type="password" id="change-new" placeholder="Nuova password (min 6 caratteri)" autocomplete="new-password" required>
       <input type="password" id="change-new2" placeholder="Conferma nuova password" autocomplete="new-password" required>
       <button type="submit">Cambia password</button>
     </form>
-    <p class="auth-link hidden" id="change-back-wrap">
-      <a id="change-back-link">← Annulla e torna all'app</a>
-    </p>
+    <p class="auth-link hidden" id="change-back-wrap"><a id="change-back-link">← Annulla e torna all'app</a></p>
   </div>
 </div>
 
@@ -152,7 +153,6 @@ h3:first-child{margin-top:0}
       <button id="logout-btn">Esci</button>
     </div>
   </header>
-
   <main>
     <section id="tab-add" class="active">
       <div class="card">
@@ -163,7 +163,6 @@ h3:first-child{margin-top:0}
         <button class="btn" id="add-submit">✓ Registra</button>
       </div>
     </section>
-
     <section id="tab-list">
       <div class="card">
         <h2>Storico</h2>
@@ -179,7 +178,6 @@ h3:first-child{margin-top:0}
         <div id="list-records"></div>
       </div>
     </section>
-
     <section id="tab-stats">
       <div class="card">
         <h2>Periodo</h2>
@@ -191,11 +189,10 @@ h3:first-child{margin-top:0}
       <div class="card">
         <h2>Statistiche per persona</h2>
         <div id="stats-people"></div>
-        <div class="hint"><b>Pagati</b> = totale pagati · <b>Offerti</b> = ad altri · <b>Ricevuti</b> = da altri · <b>Saldo</b> = Offerti − Ricevuti</div>
+        <div class="hint"><b>Pagati</b> = totale · <b>Offerti</b> = ad altri · <b>Ricevuti</b> = da altri · <b>Saldo</b> = Offerti − Ricevuti</div>
       </div>
       <div class="card"><h2>Pagamenti tra coppie</h2><div id="stats-pairs"></div></div>
     </section>
-
     <section id="tab-balance">
       <div class="card">
         <h2>Periodo</h2>
@@ -215,18 +212,13 @@ h3:first-child{margin-top:0}
       <div class="card"><h2>Bilancio complessivo</h2><div id="balance-overall"></div></div>
       <div class="card"><h2>Pareggio suggerito</h2><div id="balance-suggest"></div></div>
     </section>
-
     <section id="tab-users" class="admin-only-section">
-      <div class="card">
-        <h2>Gestione utenti</h2>
-        <div id="users-content"></div>
-      </div>
+      <div class="card"><h2>Gestione utenti</h2><div id="users-content"></div></div>
     </section>
-
     <section id="tab-settings" class="admin-only-section">
       <div class="card">
         <h2>Persone (non registrate)</h2>
-        <p class="hint" style="margin:0 0 10px">Nomi che non hanno un account. I registrati compaiono già da soli.</p>
+        <p class="hint" style="margin:0 0 10px">Nomi che non hanno un account.</p>
         <div id="settings-people" class="people-list"></div>
         <div class="add-person">
           <input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30">
@@ -234,19 +226,11 @@ h3:first-child{margin-top:0}
         </div>
       </div>
       <div class="card">
-        <h2>Backup</h2>
-        <button class="btn btn-secondary" id="export-btn" style="margin-bottom:8px">⬇ Esporta dati (JSON)</button>
-        <button class="btn btn-secondary" id="import-btn">⬆ Importa dati (JSON)</button>
-        <input type="file" id="import-file" accept=".json" style="display:none">
-        <div class="hint">Include utenti e password hashate. Conserva con cura.</div>
-      </div>
-      <div class="card">
         <h2>Zona pericolosa</h2>
         <button class="btn btn-danger" id="reset-btn">🗑 Cancella tutti i dati</button>
       </div>
     </section>
   </main>
-
   <nav>
     <button data-tab="add" class="active"><span class="icon">➕</span>Nuovo</button>
     <button data-tab="list"><span class="icon">📋</span>Storico</button>
@@ -257,619 +241,196 @@ h3:first-child{margin-top:0}
   </nav>
 </div>
 
-<script>
-const STORAGE_KEY = 'caffe-data-v2';
-const OLD_KEY = 'caffe-data-v1';
-const SESSION_KEY = 'caffe-session-v1';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyByF1boI3Lrar57On1JMn_WDm6XBXLwww",
+  authDomain: "contacaffe-7613c.firebaseapp.com",
+  projectId: "contacaffe-7613c",
+  storageBucket: "contacaffe-7613c.firebasestorage.app",
+  messagingSenderId: "815150560382",
+  appId: "1:815150560382:web:2a5125a317aa1a3febd42f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 const DEFAULT_PEOPLE = ['Franco','Salvatore','Michelangelo','Maurizio','Eleonora'];
-const DEFAULT_ADMIN = { username: 'Franco', password: '12345' };
-const MIN_PW_LEN = 4;
+const MIN_PW_LEN = 6;
+const ADMIN_EMAIL = 'franco@contacaffe.local';
 
-let state = { people: [...DEFAULT_PEOPLE], records: [], users: [] };
-
-function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const d = JSON.parse(raw);
-      if (Array.isArray(d.people) && Array.isArray(d.records) && Array.isArray(d.users)) {
-        state = d;
-        console.log('[ContaCaffè] Stato caricato. Utenti:', state.users.length);
-        return;
-      }
-    }
-    const oldRaw = localStorage.getItem(OLD_KEY);
-    if (oldRaw) {
-      const d = JSON.parse(oldRaw);
-      if (Array.isArray(d.people) && Array.isArray(d.records)) {
-        state.people = d.people;
-        state.records = d.records;
-        console.log('[ContaCaffè] Migrato da v1');
-      }
-    }
-  } catch (e) { console.error('[ContaCaffè] Errore caricamento', e); }
-}
-function save() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { console.error('[ContaCaffè] Errore salvataggio', e); }
-}
-
-async function hashPassword(pw) {
-  if (!window.crypto || !crypto.subtle) {
-    throw new Error('Crittografia non disponibile. Apri l\'app via HTTPS (GitHub Pages è HTTPS).');
-  }
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function getSession() {
-  try {
-    const s = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-    return s ? JSON.parse(s) : null;
-  } catch { return null; }
-}
-function setSession(username) { localStorage.setItem(SESSION_KEY, JSON.stringify({ username })); }
-function clearSession() { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); }
-function getCurrentUser() {
-  const s = getSession();
-  if (!s) return null;
-  return state.users.find(u => u.username === s.username && u.status === 'active') || null;
-}
-function isAdmin(u) { return u && u.role === 'admin'; }
+let state = { currentUser: null, people: [], records: [], users: [] };
+let unsubUsers = null, unsubRecords = null, unsubPeople = null;
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(s) { const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; }
-function filterByDate(records, from, to) {
-  return records.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
-}
-function toast(msg, color) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+(color||'#27ae60')+';color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2);pointer-events:none;';
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2200);
-}
+function filterByDate(records, from, to) { return records.filter(r => (!from || r.date >= from) && (!to || r.date <= to)); }
+function toast(msg, color) { const t = document.createElement('div'); t.textContent = msg; t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+(color||'#27ae60')+';color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2);pointer-events:none;'; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+function showScreen(name) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-' + name).classList.add('active'); }
+function showAuthMsg(elId, msg, type) { const el = document.getElementById(elId); el.textContent = msg; el.className = 'auth-msg show ' + (type || 'error'); }
+function clearAuthMsg(elId) { const el = document.getElementById(elId); el.className = 'auth-msg'; el.textContent = ''; }
+function usernameToEmail(username) { return username.toLowerCase().replace(/[^a-z0-9]/g, '') + '@contacaffe.local'; }
+function isAdmin() { return state.currentUser && state.currentUser.role === 'admin'; }
 
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-}
-function showAuthMsg(elId, msg, type) {
-  const el = document.getElementById(elId);
-  el.textContent = msg;
-  el.className = 'auth-msg show ' + (type || 'error');
-}
-function clearAuthMsg(elId) {
-  const el = document.getElementById(elId);
-  el.className = 'auth-msg';
-  el.textContent = '';
-}
-
-/* ---- bootstrap admin AUTO-RIPARANTE ---- */
-async function bootstrapAdmin() {
-  if (!Array.isArray(state.users)) state.users = [];
-
-  const hasActiveAdmin = state.users.some(u => u.role === 'admin' && u.status === 'active');
-  if (hasActiveAdmin) {
-    console.log('[ContaCaffè] Admin attivo trovato, nessuna azione necessaria.');
-    return;
-  }
-
-  console.log('[ContaCaffè] Nessun admin attivo. Ricreo Franco/12345...');
-  state.users = state.users.filter(u => u.username !== DEFAULT_ADMIN.username);
-  const hash = await hashPassword(DEFAULT_ADMIN.password);
-  state.users.push({
-    username: DEFAULT_ADMIN.username,
-    passwordHash: hash,
-    role: 'admin',
-    status: 'active',
-    mustChangePassword: true,
-    createdAt: Date.now()
+function startListeners() {
+  stopListeners();
+  unsubUsers = onSnapshot(collection(db, 'users'), snap => {
+    state.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (state.currentUser) { const fresh = state.users.find(u => u.username === state.currentUser.username); if (fresh) { state.currentUser.role = fresh.role; state.currentUser.mustChangePassword = fresh.mustChangePassword; state.currentUser.status = fresh.status; } }
+    renderUsers(); renderCurrentUser();
+    if (state.currentUser && state.currentUser.mustChangePassword) { showScreen('change'); } else if (state.currentUser) { showScreen('app'); renderAll(); }
   });
-  if (!state.people.includes(DEFAULT_ADMIN.username)) {
-    state.people.unshift(DEFAULT_ADMIN.username);
-  }
-  save();
-  console.log('[ContaCaffè] Admin Franco creato. Password iniziale: 12345');
+  unsubRecords = onSnapshot(collection(db, 'records'), snap => { state.records = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderRecords(); renderStats(); renderBalance(); });
+  unsubPeople = onSnapshot(collection(db, 'people'), snap => {
+    const fromDb = snap.docs.map(d => d.data().name).filter(Boolean);
+    const fromUsers = state.users.filter(u => u.status === 'active').map(u => u.username);
+    state.people = [...new Set([...DEFAULT_PEOPLE, ...fromDb, ...fromUsers])];
+    renderPayerSelect(); renderBeneficiaries(); renderBalanceSelects(); renderSettings(); renderRecords(); renderStats(); renderBalance();
+  });
+}
+function stopListeners() { if (unsubUsers) { unsubUsers(); unsubUsers = null; } if (unsubRecords) { unsubRecords(); unsubRecords = null; } if (unsubPeople) { unsubPeople(); unsubPeople = null; } }
+
+async function handleLogin(username, password) {
+  try { await signInWithEmailAndPassword(auth, usernameToEmail(username), password); return { ok: true }; } 
+  catch (e) { if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(e.code)) return { error: 'Credenziali non valide' }; return { error: 'Errore: ' + e.message }; }
 }
 
-async function login(username, password) {
-  const user = state.users.find(u => u.username === username);
-  if (!user) return { error: 'Credenziali non valide' };
-  if (user.status === 'pending') return { error: 'Account in attesa di approvazione' };
-  if (user.status === 'suspended') return { error: 'Account sospeso. Contatta l\'amministratore.' };
-  if (user.status === 'deactivated') return { error: 'Account disattivato.' };
-  if (user.status !== 'active') return { error: 'Account non attivo' };
-  const hash = await hashPassword(password);
-  if (hash !== user.passwordHash) return { error: 'Credenziali non valide' };
-  setSession(username);
-  console.log('[ContaCaffè] Login OK:', username);
-  return { user };
-}
-
-async function register(username, password, password2) {
+async function handleRegister(username, password, password2) {
   username = username.trim();
-  if (!username) return { error: 'Inserisci un nome utente' };
-  if (username.length < 2) return { error: 'Nome troppo corto' };
-  if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min '+MIN_PW_LEN+')' };
+  if (!username || username.length < 2) return { error: 'Nome troppo corto' };
+  if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (password !== password2) return { error: 'Le password non coincidono' };
-  if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-    return { error: 'Nome utente già in uso' };
-  }
-  state.users.push({
-    username,
-    passwordHash: await hashPassword(password),
-    role: 'user',
-    status: 'pending',
-    mustChangePassword: false,
-    createdAt: Date.now()
-  });
-  save();
-  return { ok: true };
+  const usersSnap = await getDocs(collection(db, 'users'));
+  if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) return { error: 'Nome utente già in uso' };
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
+    await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
+    await signOut(auth); return { ok: true };
+  } catch (e) { return { error: 'Errore: ' + e.message }; }
 }
 
-async function changeOwnPassword(oldPw, newPw, newPw2) {
-  const u = getCurrentUser();
-  if (!u) return { error: 'Sessione scaduta' };
-  if (newPw.length < MIN_PW_LEN) return { error: 'Password troppo corta (min '+MIN_PW_LEN+')' };
+async function handleChangePassword(oldPw, newPw, newPw2) {
+  if (newPw.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (newPw !== newPw2) return { error: 'Le nuove password non coincidono' };
-  if (await hashPassword(oldPw) !== u.passwordHash) return { error: 'Password attuale errata' };
-  u.passwordHash = await hashPassword(newPw);
-  u.mustChangePassword = false;
-  save();
-  return { ok: true };
+  try { await updatePassword(auth.currentUser, newPw); await setDoc(doc(db, 'users', auth.currentUser.uid), { mustChangePassword: false }, { merge: true }); if (state.currentUser) state.currentUser.mustChangePassword = false; return { ok: true }; } 
+  catch (e) { if (e.code === 'auth/requires-recent-login') return { error: 'Sessione scaduta. Esci e rientra.' }; return { error: 'Errore: ' + e.message }; }
 }
 
-function approveUser(username) {
-  const u = state.users.find(x => x.username === username);
-  if (!u) return;
-  u.status = 'active';
-  if (!state.people.includes(username)) state.people.push(username);
-  save();
-  toast('Utente approvato');
-}
-function rejectUser(username) {
-  if (!confirm('Rifiutare la richiesta di ' + username + '?')) return;
-  const u = state.users.find(x => x.username === username);
-  if (!u) return;
-  u.status = 'deactivated';
-  save();
-  toast('Richiesta rifiutata', '#c0392b');
-}
-function setUserStatus(username, status) {
-  const u = state.users.find(x => x.username === username);
-  if (!u) return;
-  u.status = status;
-  save();
-  toast('Stato aggiornato');
-}
-async function adminResetPassword(username, tempPw) {
-  if (tempPw.length < MIN_PW_LEN) throw new Error('Password temporanea troppo corta (min '+MIN_PW_LEN+')');
-  const u = state.users.find(x => x.username === username);
-  if (!u) throw new Error('Utente non trovato');
-  u.passwordHash = await hashPassword(tempPw);
-  u.mustChangePassword = true;
-  save();
-}
+async function approveUser(userId) { await setDoc(doc(db, 'users', userId), { status: 'active' }, { merge: true }); toast('Utente approvato'); }
+async function rejectUser(userId) { if (!confirm('Rifiutare?')) return; await setDoc(doc(db, 'users', userId), { status: 'deactivated' }, { merge: true }); toast('Rifiutato', '#c0392b'); }
+async function setUserStatus(userId, status) { await setDoc(doc(db, 'users', userId), { status }, { merge: true }); toast('Stato aggiornato'); }
+async function adminResetPassword(userId, tempPw) { if (tempPw.length < MIN_PW_LEN) throw new Error('Troppo corta'); await setDoc(doc(db, 'users', userId), { mustChangePassword: true, tempPassword: tempPw }, { merge: true }); toast('Reset richiesto. Chiedi all\'utente di usare questa password.'); }
 async function adminCreateUser(username, tempPw) {
   username = username.trim();
-  if (!username) throw new Error('Nome vuoto');
-  if (state.users.some(x => x.username.toLowerCase() === username.toLowerCase())) {
-    throw new Error('Nome utente già esistente');
-  }
-  if (tempPw.length < MIN_PW_LEN) throw new Error('Password troppo corta');
-  state.users.push({
-    username,
-    passwordHash: await hashPassword(tempPw),
-    role: 'user',
-    status: 'active',
-    mustChangePassword: true,
-    createdAt: Date.now()
-  });
-  if (!state.people.includes(username)) state.people.push(username);
-  save();
+  if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('Già esistente');
+  try {
+    const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+    const secondaryAuth = getAuth(secondaryApp);
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, usernameToEmail(username), tempPw);
+    await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'active', mustChangePassword: true, createdAt: serverTimestamp() });
+    await signOut(secondaryAuth);
+    toast('Utente creato');
+  } catch (e) { throw new Error(e.message); }
 }
 
 function renderCurrentUser() {
-  const u = getCurrentUser();
-  if (!u) return;
-  document.getElementById('current-user').textContent = u.username + (u.role === 'admin' ? ' (admin)' : '');
-  document.querySelectorAll('.admin-only-section').forEach(el => {
-    el.classList.toggle('hidden', !isAdmin(u));
-  });
+  if (!state.currentUser) return;
+  document.getElementById('current-user').textContent = state.currentUser.username + (state.currentUser.role === 'admin' ? ' (admin)' : '');
+  document.querySelectorAll('.admin-only-section').forEach(el => el.classList.toggle('hidden', !isAdmin()));
 }
-
-function resetTabsToDefault() {
-  document.querySelectorAll('#screen-app nav button').forEach((b, i) => {
-    b.classList.toggle('active', i === 0);
-  });
-  document.querySelectorAll('#screen-app main section').forEach((s, i) => {
-    s.classList.toggle('active', i === 0);
-  });
-}
+function resetTabsToDefault() { document.querySelectorAll('#screen-app nav button').forEach((b, i) => b.classList.toggle('active', i === 0)); document.querySelectorAll('#screen-app main section').forEach((s, i) => s.classList.toggle('active', i === 0)); }
 
 function computeStats(records) {
   const paid = {}, offered = {}, received = {}, flow = {};
-  state.people.forEach(p => {
-    paid[p]=0; offered[p]=0; received[p]=0; flow[p]={};
-    state.people.forEach(q => flow[p][q]=0);
-  });
-  records.forEach(r => {
-    (r.beneficiaries||[]).forEach(b => {
-      paid[r.payer] = (paid[r.payer]||0) + 1;
-      if (b !== r.payer) {
-        offered[r.payer] = (offered[r.payer]||0) + 1;
-        received[b] = (received[b]||0) + 1;
-        if (!flow[r.payer]) flow[r.payer] = {};
-        flow[r.payer][b] = (flow[r.payer][b]||0) + 1;
-      }
-    });
-  });
+  state.people.forEach(p => { paid[p]=0; offered[p]=0; received[p]=0; flow[p]={}; state.people.forEach(q => flow[p][q]=0); });
+  records.forEach(r => { (r.beneficiaries||[]).forEach(b => { paid[r.payer] = (paid[r.payer]||0) + 1; if (b !== r.payer) { offered[r.payer] = (offered[r.payer]||0) + 1; received[b] = (received[b]||0) + 1; if (!flow[r.payer]) flow[r.payer] = {}; flow[r.payer][b] = (flow[r.payer][b]||0) + 1; } }); });
   return { paid, offered, received, flow };
 }
-function netBalance(stats) {
-  const net = {};
-  state.people.forEach(p => { net[p] = (stats.offered[p]||0) - (stats.received[p]||0); });
-  return net;
-}
-function suggestSettlements(net) {
-  const c=[], d=[];
-  Object.keys(net).forEach(p => { if (net[p]>0) c.push({p, v:net[p]}); else if (net[p]<0) d.push({p, v:-net[p]}); });
-  c.sort((a,b)=>b.v-a.v); d.sort((a,b)=>b.v-a.v);
-  const r=[]; let i=0, j=0;
-  while (i<c.length && j<d.length) {
-    const cc=c[i], dd=d[j], amt=Math.min(cc.v, dd.v);
-    if (amt>0) r.push({from: dd.p, to: cc.p, amount: amt});
-    cc.v-=amt; dd.v-=amt;
-    if (cc.v===0) i++;
-    if (dd.v===0) j++;
-  }
-  return r;
-}
+function netBalance(stats) { const net = {}; state.people.forEach(p => { net[p] = (stats.offered[p]||0) - (stats.received[p]||0); }); return net; }
+function suggestSettlements(net) { const c=[], d=[]; Object.keys(net).forEach(p => { if (net[p]>0) c.push({p, v:net[p]}); else if (net[p]<0) d.push({p, v:-net[p]}); }); c.sort((a,b)=>b.v-a.v); d.sort((a,b)=>b.v-a.v); const r=[]; let i=0, j=0; while (i<c.length && j<d.length) { const cc=c[i], dd=d[j], amt=Math.min(cc.v, dd.v); if (amt>0) r.push({from: dd.p, to: cc.p, amount: amt}); cc.v-=amt; dd.v-=amt; if (cc.v===0) i++; if (dd.v===0) j++; } return r; }
 
-function renderPayerSelect() {
-  const sel = document.getElementById('add-payer');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">-- Seleziona --</option>' +
-    state.people.map(p => '<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
-  if (cur && state.people.includes(cur)) sel.value = cur;
-}
-function renderBeneficiaries() {
-  const c = document.getElementById('add-beneficiaries');
-  const checked = new Set([...c.querySelectorAll('input:checked')].map(i=>i.value));
-  const payer = document.getElementById('add-payer').value;
-  c.innerHTML = state.people.map(p => {
-    const isChecked = checked.has(p) || p === payer;
-    return '<label class="checkbox-item"><input type="checkbox" value="'+esc(p)+'" '+(isChecked?'checked':'')+'><span>'+esc(p)+'</span></label>';
-  }).join('');
-}
-function renderRecords() {
-  const from = document.getElementById('list-from').value;
-  const to = document.getElementById('list-to').value;
-  const f = filterByDate(state.records, from, to).sort((a,b)=> b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));
-  const c = document.getElementById('list-records');
-  if (f.length === 0) { c.innerHTML = '<div class="empty">Nessun record nel periodo selezionato</div>'; return; }
-  c.innerHTML = f.map(r => {
-    return '<div class="record"><div class="info"><div class="date">'+fmtDate(r.date)+'</div><div class="payer">'+esc(r.payer)+' ha pagato '+r.beneficiaries.length+' caffè</div><div class="beneficiaries">per: '+r.beneficiaries.map(esc).join(', ')+'</div></div><button class="delete" data-id="'+esc(String(r.id))+'">✕</button></div>';
-  }).join('');
-  c.querySelectorAll('.delete').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (!confirm('Eliminare questo record?')) return;
-      state.records = state.records.filter(r => String(r.id) !== btn.dataset.id);
-      save(); renderRecords(); renderStats(); renderBalance();
-    });
-  });
-}
-function renderStats() {
-  const from = document.getElementById('stats-from').value;
-  const to = document.getElementById('stats-to').value;
-  const f = filterByDate(state.records, from, to);
-  const stats = computeStats(f);
-  const peopleEl = document.getElementById('stats-people');
-  if (f.length === 0) {
-    peopleEl.innerHTML = '<div class="empty">Nessun dato nel periodo</div>';
-  } else {
-    peopleEl.innerHTML = state.people.map(p => {
-      const net = (stats.offered[p]||0) - (stats.received[p]||0);
-      const nc = net>0?'positive':net<0?'negative':'zero';
-      const nt = net>0?'+'+net:String(net);
-      return '<div class="stat-card"><div class="stat-name">'+esc(p)+'</div><div class="stat-grid"><div><span>Pagati</span><b>'+(stats.paid[p]||0)+'</b></div><div><span>Offerti</span><b>'+(stats.offered[p]||0)+'</b></div><div><span>Ricevuti</span><b>'+(stats.received[p]||0)+'</b></div><div><span>Saldo</span><b class="'+nc+'">'+nt+'</b></div></div></div>';
-    }).join('');
-  }
-  const pairsEl = document.getElementById('stats-pairs');
-  const pairs = [];
-  state.people.forEach(a => state.people.forEach(b => {
-    if (a !== b && (stats.flow[a]?.[b]||0) > 0) pairs.push({a, b, n: stats.flow[a][b]});
-  }));
-  if (pairs.length === 0) pairsEl.innerHTML = '<div class="empty">Nessun pagamento tra persone nel periodo</div>';
-  else {
-    pairs.sort((x,y)=>y.n-x.n);
-    pairsEl.innerHTML = pairs.map(x => '<div class="stats-row"><span>'+esc(x.a)+' ha pagato a <b>'+esc(x.b)+'</b></span><span class="val">'+x.n+' caffè</span></div>').join('');
-  }
-}
-function renderBalanceSelects() {
-  ['balance-a','balance-b'].forEach(id => {
-    const sel = document.getElementById(id);
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
-    if (state.people.includes(cur)) sel.value = cur;
-  });
-}
-function renderBalance() {
-  const from = document.getElementById('balance-from').value;
-  const to = document.getElementById('balance-to').value;
-  const f = filterByDate(state.records, from, to);
-  const stats = computeStats(f);
-  const a = document.getElementById('balance-a').value;
-  const b = document.getElementById('balance-b').value;
-  const resultEl = document.getElementById('balance-result');
-  if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>';
-  else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona due persone diverse</span>';
-  else {
-    const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA;
-    let msg, cls;
-    if (diff === 0) { msg='In pari 🤝'; cls='zero'; }
-    else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; }
-    else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; }
-    resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>';
-  }
-  const net = netBalance(stats);
-  const overallEl = document.getElementById('balance-overall');
-  if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato nel periodo</div>';
-  else {
-    overallEl.innerHTML = state.people.map(p => {
-      const v = net[p];
-      const cls = v>0?'positive':v<0?'negative':'zero';
-      const txt = v>0?'+'+v:String(v);
-      const desc = v>0?'in credito':v<0?'in debito':'in pari';
-      return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>';
-    }).join('');
-  }
-  const suggestEl = document.getElementById('balance-suggest');
-  const settlements = suggestSettlements(net);
-  if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio necessario 🎉</div>';
-  else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join('');
-}
-function renderSettings() {
-  const u = getCurrentUser();
-  if (!isAdmin(u)) return;
-  const c = document.getElementById('settings-people');
-  c.innerHTML = state.people.map(p => {
-    const isRegistered = state.users.some(x => x.username === p);
-    const removeBtn = isRegistered ? '' : '<button data-name="'+esc(p)+'">✕</button>';
-    return '<div class="person-chip">'+esc(p)+(isRegistered?' <small style="color:#8a7562;font-size:10px">(registrato)</small>':'')+removeBtn+'</div>';
-  }).join('');
-  c.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (!confirm('Rimuovere "'+btn.dataset.name+'"?')) return;
-      state.people = state.people.filter(p => p !== btn.dataset.name);
-      save(); renderAll();
-    });
-  });
-}
-function renderUsers() {
-  const u = getCurrentUser();
-  if (!isAdmin(u)) return;
+function renderPayerSelect() { const sel = document.getElementById('add-payer'); const cur = sel.value; sel.innerHTML = '<option value="">-- Seleziona --</option>' + state.people.map(p => '<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (cur && state.people.includes(cur)) sel.value = cur; }
+function renderBeneficiaries() { const c = document.getElementById('add-beneficiaries'); const checked = new Set([...c.querySelectorAll('input:checked')].map(i=>i.value)); const payer = document.getElementById('add-payer').value; c.innerHTML = state.people.map(p => { const isChecked = checked.has(p) || p === payer; return '<label class="checkbox-item"><input type="checkbox" value="'+esc(p)+'" '+(isChecked?'checked':'')+'><span>'+esc(p)+'</span></label>'; }).join(''); }
+function renderRecords() { const from = document.getElementById('list-from').value; const to = document.getElementById('list-to').value; const f = filterByDate(state.records, from, to).sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0)); const c = document.getElementById('list-records'); if (f.length === 0) { c.innerHTML = '<div class="empty">Nessun record nel periodo</div>'; return; } c.innerHTML = f.map(r => '<div class="record"><div class="info"><div class="date">'+fmtDate(r.date)+'</div><div class="payer">'+esc(r.payer)+' ha pagato '+r.beneficiaries.length+' caffè</div><div class="beneficiaries">per: '+r.beneficiaries.map(esc).join(', ')+'</div></div><button class="delete" data-id="'+esc(String(r.id))+'">✕</button></div>').join(''); c.querySelectorAll('.delete').forEach(btn => { btn.addEventListener('click', async () => { if (!confirm('Eliminare questo record?')) return; await deleteDoc(doc(db, 'records', btn.dataset.id)); }); }); }
+function renderStats() { const from = document.getElementById('stats-from').value; const to = document.getElementById('stats-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const peopleEl = document.getElementById('stats-people'); if (f.length === 0) { peopleEl.innerHTML = '<div class="empty">Nessun dato</div>'; } else { peopleEl.innerHTML = state.people.map(p => { const net = (stats.offered[p]||0) - (stats.received[p]||0); const nc = net>0?'positive':net<0?'negative':'zero'; const nt = net>0?'+'+net:String(net); return '<div class="stat-card"><div class="stat-name">'+esc(p)+'</div><div class="stat-grid"><div><span>Pagati</span><b>'+(stats.paid[p]||0)+'</b></div><div><span>Offerti</span><b>'+(stats.offered[p]||0)+'</b></div><div><span>Ricevuti</span><b>'+(stats.received[p]||0)+'</b></div><div><span>Saldo</span><b class="'+nc+'">'+nt+'</b></div></div></div>'; }).join(''); } const pairsEl = document.getElementById('stats-pairs'); const pairs = []; state.people.forEach(a => state.people.forEach(b => { if (a !== b && (stats.flow[a]?.[b]||0) > 0) pairs.push({a, b, n: stats.flow[a][b]}); })); if (pairs.length === 0) pairsEl.innerHTML = '<div class="empty">Nessun pagamento</div>'; else { pairs.sort((x,y)=>y.n-x.n); pairsEl.innerHTML = pairs.map(x => '<div class="stats-row"><span>'+esc(x.a)+' ha pagato a <b>'+esc(x.b)+'</b></span><span class="val">'+x.n+' caffè</span></div>').join(''); } }
+function renderBalanceSelects() { ['balance-a','balance-b'].forEach(id => { const sel = document.getElementById(id); const cur = sel.value; sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (state.people.includes(cur)) sel.value = cur; }); }
+function renderBalance() { const from = document.getElementById('balance-from').value; const to = document.getElementById('balance-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const a = document.getElementById('balance-a').value; const b = document.getElementById('balance-b').value; const resultEl = document.getElementById('balance-result'); if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>'; else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona diverse</span>'; else { const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA; let msg, cls; if (diff === 0) { msg='In pari 🤝'; cls='zero'; } else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; } else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; } resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>'; } const net = netBalance(stats); const overallEl = document.getElementById('balance-overall'); if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato</div>'; else { overallEl.innerHTML = state.people.map(p => { const v = net[p]; const cls = v>0?'positive':v<0?'negative':'zero'; const txt = v>0?'+'+v:String(v); const desc = v>0?'in credito':v<0?'in debito':'in pari'; return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>'; }).join(''); } const suggestEl = document.getElementById('balance-suggest'); const settlements = suggestSettlements(net); if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio 🎉</div>'; else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join(''); }
+function renderSettings() { if (!isAdmin()) return; const c = document.getElementById('settings-people'); c.innerHTML = state.people.map(p => { const isRegistered = state.users.some(x => x.username === p); const removeBtn = isRegistered ? '' : '<button data-name="'+esc(p)+'">✕</button>'; return '<div class="person-chip">'+esc(p)+(isRegistered?' <small style="color:#8a7562;font-size:10px">(reg)</small>':'')+removeBtn+'</div>'; }).join(''); c.querySelectorAll('button').forEach(btn => { btn.addEventListener('click', async () => { if (!confirm('Rimuovere?')) return; const snap = await getDocs(collection(db, 'people')); for (const d of snap.docs) { if (d.data().name === btn.dataset.name) await deleteDoc(doc(db, 'people', d.id)); } }); }); }
+  function renderUsers() {
+  if (!isAdmin()) return;
   const container = document.getElementById('users-content');
   const pending = state.users.filter(x => x.status === 'pending');
   const active = state.users.filter(x => x.status === 'active' && x.role !== 'admin');
   const suspended = state.users.filter(x => x.status === 'suspended');
   const deactivated = state.users.filter(x => x.status === 'deactivated');
-
   let html = '';
-  if (pending.length > 0) {
-    html += '<h3>Richieste in attesa ('+pending.length+')</h3>';
-    html += pending.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="approve" data-user="'+esc(x.username)+'">✓ Approva</button><button class="btn-small btn-danger" data-action="reject" data-user="'+esc(x.username)+'">✕ Rifiuta</button></div></div>').join('');
-  }
-  if (active.length > 0) {
-    html += '<h3>Utenti attivi ('+active.length+')</h3>';
-    html += active.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn-secondary" data-action="reset-pw" data-user="'+esc(x.username)+'">🔑 Reset pwd</button><button class="btn-small btn-secondary" data-action="suspend" data-user="'+esc(x.username)+'">⏸ Sospendi</button><button class="btn-small btn-danger" data-action="deactivate" data-user="'+esc(x.username)+'">🚫 Disattiva</button></div></div>').join('');
-  }
-  if (suspended.length > 0) {
-    html += '<h3>Sospesi ('+suspended.length+')</h3>';
-    html += suspended.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-user="'+esc(x.username)+'">▶ Riattiva</button></div></div>').join('');
-  }
-  if (deactivated.length > 0) {
-    html += '<h3>Disattivati ('+deactivated.length+')</h3>';
-    html += deactivated.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-user="'+esc(x.username)+'">▶ Riattiva</button></div></div>').join('');
-  }
-  if (pending.length + active.length + suspended.length + deactivated.length === 0) {
-    html += '<div class="empty">Nessun utente registrato</div>';
-  }
-  html += '<h3>Aggiungi utente manualmente</h3>' +
-    '<p class="hint" style="margin:0 0 8px">L\'utente sarà attivo subito, dovrà cambiare la password al primo accesso.</p>' +
-    '<div class="add-person">' +
-      '<input type="text" id="admin-new-username" placeholder="Nome utente" maxlength="30">' +
-      '<input type="text" id="admin-new-password" placeholder="Password temporanea">' +
-      '<button class="btn" id="admin-create-user">+</button>' +
-    '</div>' +
-    '<div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
-
+  if (pending.length > 0) { html += '<h3>In attesa ('+pending.length+')</h3>'; html += pending.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="approve" data-id="'+esc(x.id)+'">✓ Approva</button><button class="btn-small btn-danger" data-action="reject" data-id="'+esc(x.id)+'">✕ Rifiuta</button></div></div>').join(''); }
+  if (active.length > 0) { html += '<h3>Attivi ('+active.length+')</h3>'; html += active.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn-secondary" data-action="reset-pw" data-id="'+esc(x.id)+'">🔑 Reset pwd</button><button class="btn-small btn-secondary" data-action="suspend" data-id="'+esc(x.id)+'">⏸ Sospendi</button><button class="btn-small btn-danger" data-action="deactivate" data-id="'+esc(x.id)+'">🚫 Disattiva</button></div></div>').join(''); }
+  if (suspended.length > 0) { html += '<h3>Sospesi ('+suspended.length+')</h3>'; html += suspended.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-id="'+esc(x.id)+'">▶ Riattiva</button></div></div>').join(''); }
+  if (deactivated.length > 0) { html += '<h3>Disattivati ('+deactivated.length+')</h3>'; html += deactivated.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-id="'+esc(x.id)+'">▶ Riattiva</button></div></div>').join(''); }
+  if (pending.length + active.length + suspended.length + deactivated.length === 0) html += '<div class="empty">Nessun utente</div>';
+  html += '<h3>Aggiungi utente</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
   container.innerHTML = html;
-
   container.querySelectorAll('button[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const action = btn.dataset.action, user = btn.dataset.user;
-      if (action === 'approve') approveUser(user);
-      else if (action === 'reject') rejectUser(user);
-      else if (action === 'suspend') setUserStatus(user, 'suspended');
-      else if (action === 'deactivate') { if (confirm('Disattivare '+user+'?')) setUserStatus(user, 'deactivated'); }
-      else if (action === 'activate') setUserStatus(user, 'active');
-      else if (action === 'reset-pw') {
-        const temp = prompt('Nuova password temporanea per '+user+' (min '+MIN_PW_LEN+' caratteri):');
-        if (!temp) return;
-        try { await adminResetPassword(user, temp); alert('Password reimpostata. L\'utente dovrà cambiarla al primo accesso.'); }
-        catch (e) { alert('Errore: ' + e.message); }
-      }
-      renderUsers(); renderAll();
+      const action = btn.dataset.action, id = btn.dataset.id;
+      if (action === 'approve') await approveUser(id); else if (action === 'reject') await rejectUser(id); else if (action === 'suspend') await setUserStatus(id, 'suspended'); else if (action === 'deactivate') { if (confirm('Disattivare?')) await setUserStatus(id, 'deactivated'); } else if (action === 'activate') await setUserStatus(id, 'active');
+      else if (action === 'reset-pw') { const temp = prompt('Nuova password temporanea (min 6):'); if (temp) { try { await adminResetPassword(id, temp); alert('Fatto! L\'utente dovrà cambiarla.'); } catch (e) { alert('Errore: ' + e.message); } } }
     });
   });
   const createBtn = document.getElementById('admin-create-user');
-  if (createBtn) {
-    createBtn.addEventListener('click', async () => {
-      const un = document.getElementById('admin-new-username').value;
-      const pw = document.getElementById('admin-new-password').value;
-      const msgEl = document.getElementById('admin-new-msg');
-      try {
-        await adminCreateUser(un, pw);
-        msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Utente creato';
-        renderUsers(); renderAll();
-      } catch (e) {
-        msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message;
-      }
-    });
-  }
+  if (createBtn) { createBtn.addEventListener('click', async () => { const un = document.getElementById('admin-new-username').value; const pw = document.getElementById('admin-new-password').value; const msgEl = document.getElementById('admin-new-msg'); try { await adminCreateUser(un, pw); msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato'; } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; } }); }
 }
 
-function renderAll() {
-  renderPayerSelect(); renderBeneficiaries(); renderRecords();
-  renderStats(); renderBalanceSelects(); renderBalance();
-  renderSettings(); renderUsers();
-}
+function renderAll() { renderPayerSelect(); renderBeneficiaries(); renderRecords(); renderStats(); renderBalanceSelects(); renderBalance(); renderSettings(); renderUsers(); }
 
-function updateScreens() {
-  const u = getCurrentUser();
-  if (!u) { showScreen('login'); return; }
-  if (u.mustChangePassword) {
-    document.getElementById('change-back-wrap').classList.add('hidden');
-    showScreen('change');
-    return;
-  }
-  resetTabsToDefault();
-  showScreen('app');
-  renderCurrentUser();
-  renderAll();
-}
-
-function setupNav() {
-  document.querySelectorAll('#screen-app nav button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    });
-  });
-}
+function setupNav() { document.querySelectorAll('#screen-app nav button').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active')); document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-' + btn.dataset.tab).classList.add('active'); }); }); }
 
 function setupAuthEvents() {
-  document.getElementById('show-register').addEventListener('click', () => {
-    clearAuthMsg('login-msg'); clearAuthMsg('reg-msg'); showScreen('register');
-  });
-  document.getElementById('show-login').addEventListener('click', () => {
-    clearAuthMsg('login-msg'); clearAuthMsg('reg-msg'); showScreen('login');
-  });
-
-  document.getElementById('reset-app').addEventListener('click', () => {
-    if (!confirm('Ripristinare l\'account admin?\n\n• Verranno cancellati TUTTI gli utenti (inclusi eventuali registrati)\n• Admin Franco / 12345 sarà ricreato\n• I RECORD DEI CAFFÈ rimarranno intatti\n\nContinuare?')) return;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const d = raw ? JSON.parse(raw) : { people: [], records: [], users: [] };
-      d.users = [];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-    } catch (e) { console.error(e); }
-    clearSession();
-    alert('Admin ripristinato. La pagina si ricaricherà.');
-    location.reload();
-  });
+  document.getElementById('show-register').addEventListener('click', () => { clearAuthMsg('login-msg'); showScreen('register'); });
+  document.getElementById('show-login').addEventListener('click', () => { clearAuthMsg('reg-msg'); showScreen('login'); });
 
   document.getElementById('login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAuthMsg('login-msg');
-    const un = document.getElementById('login-username').value.trim();
-    const pw = document.getElementById('login-password').value;
-    try {
-      const res = await login(un, pw);
-      if (res.error) { showAuthMsg('login-msg', res.error, 'error'); return; }
-      document.getElementById('login-password').value = '';
-      updateScreens();
-    } catch (err) {
-      showAuthMsg('login-msg', 'Errore: ' + err.message, 'error');
-    }
+    e.preventDefault(); clearAuthMsg('login-msg'); document.getElementById('loading-overlay').classList.add('active');
+    const res = await handleLogin(document.getElementById('login-username').value.trim(), document.getElementById('login-password').value);
+    document.getElementById('loading-overlay').classList.remove('active');
+    if (res.error) { showAuthMsg('login-msg', res.error, 'error'); } else { document.getElementById('login-password').value = ''; }
   });
 
   document.getElementById('register-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAuthMsg('reg-msg');
-    try {
-      const res = await register(
-        document.getElementById('reg-username').value,
-        document.getElementById('reg-password').value,
-        document.getElementById('reg-password2').value
-      );
-      if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); return; }
-      showAuthMsg('reg-msg', '✓ Richiesta inviata! Attendi l\'approvazione dell\'admin.', 'success');
-      document.getElementById('register-form').reset();
-    } catch (err) {
-      showAuthMsg('reg-msg', 'Errore: ' + err.message, 'error');
-    }
+    e.preventDefault(); clearAuthMsg('reg-msg'); document.getElementById('loading-overlay').classList.add('active');
+    const res = await handleRegister(document.getElementById('reg-username').value, document.getElementById('reg-password').value, document.getElementById('reg-password2').value);
+    document.getElementById('loading-overlay').classList.remove('active');
+    if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else { showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success'); document.getElementById('register-form').reset(); }
   });
 
   document.getElementById('change-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAuthMsg('change-msg');
-    try {
-      const res = await changeOwnPassword(
-        document.getElementById('change-old').value,
-        document.getElementById('change-new').value,
-        document.getElementById('change-new2').value
-      );
-      if (res.error) { showAuthMsg('change-msg', res.error, 'error'); return; }
-      document.getElementById('change-form').reset();
-      toast('✓ Password cambiata');
-      updateScreens();
-    } catch (err) {
-      showAuthMsg('change-msg', 'Errore: ' + err.message, 'error');
-    }
+    e.preventDefault(); clearAuthMsg('change-msg'); document.getElementById('loading-overlay').classList.add('active');
+    const res = await handleChangePassword(document.getElementById('change-old').value, document.getElementById('change-new').value, document.getElementById('change-new2').value);
+    document.getElementById('loading-overlay').classList.remove('active');
+    if (res.error) { showAuthMsg('change-msg', res.error, 'error'); } else { document.getElementById('change-form').reset(); toast('✓ Password cambiata'); }
   });
 
-  document.getElementById('change-back-link').addEventListener('click', () => {
-    document.getElementById('change-form').reset();
-    clearAuthMsg('change-msg');
-    updateScreens();
-  });
-
-  document.getElementById('password-btn').addEventListener('click', () => {
-    document.getElementById('change-form').reset();
-    clearAuthMsg('change-msg');
-    document.getElementById('change-back-wrap').classList.remove('hidden');
-    document.getElementById('change-subtitle').textContent = 'Cambia la tua password';
-    showScreen('change');
-  });
-
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    if (!confirm('Uscire dall\'account?')) return;
-    clearSession();
-    document.getElementById('login-username').value = '';
-    document.getElementById('login-password').value = '';
-    clearAuthMsg('login-msg');
-    updateScreens();
-  });
+  document.getElementById('change-back-link').addEventListener('click', () => { document.getElementById('change-form').reset(); clearAuthMsg('change-msg'); showScreen('app'); });
+  document.getElementById('password-btn').addEventListener('click', () => { document.getElementById('change-form').reset(); clearAuthMsg('change-msg'); document.getElementById('change-back-wrap').classList.remove('hidden'); document.getElementById('change-subtitle').textContent = 'Cambia la tua password'; showScreen('change'); });
+  document.getElementById('logout-btn').addEventListener('click', () => { if (confirm('Uscire?')) handleLogout(); });
 }
 
 function setupAppEvents() {
-  document.getElementById('add-payer').addEventListener('change', e => {
-    const payer = e.target.value;
-    if (!payer) return;
-    const c = document.getElementById('add-beneficiaries');
-    const cb = [...c.querySelectorAll('input')].find(i => i.value === payer);
-    if (cb) cb.checked = true;
-  });
-  document.getElementById('add-submit').addEventListener('click', () => {
-    const date = document.getElementById('add-date').value;
-    const payer = document.getElementById('add-payer').value;
-    const beneficiaries = [...document.querySelectorAll('#add-beneficiaries input:checked')].map(i => i.value);
-    if (!date) return alert('Inserisci una data');
-    if (!payer) return alert('Seleziona chi ha pagato');
-    if (beneficiaries.length === 0) return alert('Seleziona almeno una persona');
-    state.records.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,8), date, payer, beneficiaries });
-    save();
-    document.getElementById('add-payer').value = '';
-    document.getElementById('add-date').value = today();
-    document.querySelectorAll('#add-beneficiaries input').forEach(i => i.checked = false);
-    toast('✓ Registrato');
-    renderRecords(); renderStats(); renderBalance();
+  document.getElementById('add-payer').addEventListener('change', e => { const payer = e.target.value; if (!payer) return; const c = document.getElementById('add-beneficiaries'); const cb = [...c.querySelectorAll('input')].find(i => i.value === payer); if (cb) cb.checked = true; });
+  
+  document.getElementById('add-submit').addEventListener('click', async () => {
+    const date = document.getElementById('add-date').value; const payer = document.getElementById('add-payer').value; const beneficiaries = [...document.querySelectorAll('#add-beneficiaries input:checked')].map(i => i.value);
+    if (!date || !payer || beneficiaries.length === 0) return alert('Compila tutto');
+    document.getElementById('loading-overlay').classList.add('active');
+    await addDoc(collection(db, 'records'), { date, payer, beneficiaries, createdAt: serverTimestamp() });
+    document.getElementById('loading-overlay').classList.remove('active');
+    document.getElementById('add-payer').value = ''; document.getElementById('add-date').value = today(); document.querySelectorAll('#add-beneficiaries input').forEach(i => i.checked = false); toast('✓ Registrato');
   });
 
   ['list-from','list-to'].forEach(id => document.getElementById(id).addEventListener('change', renderRecords));
@@ -878,94 +439,72 @@ function setupAppEvents() {
 
   document.querySelectorAll('[data-quick]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const now = new Date();
-      const to = today();
-      let from = '';
-      if (btn.dataset.quick === 'week') {
-        const d = new Date(now); d.setDate(d.getDate()-7);
-        from = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      } else if (btn.dataset.quick === 'month') {
-        from = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
-      }
-      document.getElementById('list-from').value = from;
-      document.getElementById('list-to').value = to;
-      renderRecords();
+      const now = new Date(); const to = today(); let from = '';
+      if (btn.dataset.quick === 'week') { const d = new Date(now); d.setDate(d.getDate()-7); from = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } else if (btn.dataset.quick === 'month') { from = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01'; }
+      document.getElementById('list-from').value = from; document.getElementById('list-to').value = to; renderRecords();
     });
   });
 
-  document.getElementById('add-person-btn').addEventListener('click', () => {
-    const input = document.getElementById('new-person');
-    const name = input.value.trim();
-    if (!name) return;
-    if (state.people.includes(name)) return alert('Nome già esistente');
-    state.people.push(name);
-    input.value = '';
-    save(); renderAll(); toast('Persona aggiunta');
-  });
-  document.getElementById('new-person').addEventListener('keypress', e => {
-    if (e.key === 'Enter') document.getElementById('add-person-btn').click();
+  document.getElementById('add-person-btn').addEventListener('click', async () => {
+    const input = document.getElementById('new-person'); const name = input.value.trim(); if (!name) return; if (state.people.includes(name)) return alert('Esiste già');
+    await addDoc(collection(db, 'people'), { name }); input.value = ''; toast('Aggiunto');
   });
 
-  document.getElementById('export-btn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'caffe-'+today()+'.json'; a.click();
-    URL.revokeObjectURL(url);
-    toast('Esportato');
-  });
-  document.getElementById('import-btn').addEventListener('click', () => {
-    document.getElementById('import-file').click();
-  });
-  document.getElementById('import-file').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        if (!Array.isArray(data.people) || !Array.isArray(data.records) || !Array.isArray(data.users)) {
-          throw new Error('Formato non valido');
-        }
-        if (!confirm('Sovrascrivere i dati attuali (inclusi utenti)?')) return;
-        state = data;
-        save(); renderAll(); toast('Importato');
-      } catch (err) { alert('Errore: ' + err.message); }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
-
-  document.getElementById('reset-btn').addEventListener('click', () => {
-    if (!confirm('Cancellare TUTTI i dati (inclusi utenti)?')) return;
-    if (!confirm('Sei sicuro? Verrai disconnesso.')) return;
-    localStorage.removeItem(STORAGE_KEY);
-    clearSession();
-    location.reload();
-  });
+  document.getElementById('reset-btn').addEventListener('click', () => { alert('Per svuotare il database, fallo dalla console Firebase (Firestore).'); });
 }
 
+onAuthStateChanged(auth, async (user) => {
+  document.getElementById('loading-overlay').classList.add('active');
+  if (user) {
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.status === 'pending') { await signOut(auth); showAuthMsg('login-msg', 'In attesa di approvazione', 'error'); document.getElementById('loading-overlay').classList.remove('active'); return; }
+        if (data.status === 'suspended' || data.status === 'deactivated') { await signOut(auth); showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error'); document.getElementById('loading-overlay').classList.remove('active'); return; }
+        
+        state.currentUser = { username: data.username, role: data.role, mustChangePassword: data.mustChangePassword, status: data.status };
+        startListeners();
+        
+        // Aggiorna ruolo per admin
+        if (data.username === 'Franco' && data.role !== 'admin') {
+          await setDoc(docRef, { role: 'admin' }, { merge: true });
+          state.currentUser.role = 'admin';
+        }
+
+        renderCurrentUser();
+        if (state.currentUser.mustChangePassword) { showScreen('change'); document.getElementById('change-back-wrap').classList.add('hidden'); } 
+        else { resetTabsToDefault(); showScreen('app'); renderAll(); }
+      }
+    } catch (e) { console.error(e); }
+  } else {
+    state.currentUser = null; stopListeners(); showScreen('login');
+  }
+  document.getElementById('loading-overlay').classList.remove('active');
+});
+
 async function init() {
-  try {
-    load();
-    await bootstrapAdmin();
-    document.getElementById('add-date').value = today();
-    setupNav();
-    setupAuthEvents();
-    setupAppEvents();
-    updateScreens();
-    console.log('[ContaCaffè] Init completato.');
-  } catch (e) {
-    console.error('[ContaCaffè] Init FALLITO:', e);
-    const msg = document.getElementById('login-msg');
-    if (msg) {
-      msg.textContent = 'Errore inizializzazione: ' + e.message + ' — apri la console (F12) per dettagli.';
-      msg.className = 'auth-msg show error';
-    }
+  document.getElementById('add-date').value = today();
+  setupNav(); setupAuthEvents(); setupAppEvents();
+  
+  // Controlla se esiste l'admin Franco. Se no, lo crea.
+  const usersSnap = await getDocs(collection(db, 'users'));
+  const adminExists = usersSnap.docs.some(d => d.data().role === 'admin');
+  if (!adminExists) {
+    try {
+      const secondaryApp = initializeApp(firebaseConfig, 'SecondaryInit');
+      const secondaryAuth = getAuth(secondaryApp);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, ADMIN_EMAIL, '12345');
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        username: 'Franco', email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePassword: true, createdAt: serverTimestamp()
+      });
+      await signOut(secondaryAuth);
+      console.log('Admin Franco creato');
+    } catch (e) { console.log('Admin già esistente o errore:', e.message); }
   }
 }
 init();
 </script>
-
 </body>
 </html>
