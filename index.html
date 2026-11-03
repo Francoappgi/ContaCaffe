@@ -354,7 +354,7 @@ async function handleRegister(username, password, password2) {
     const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
     
-    // Importante: sloggiamo subito per non far vedere l'app
+    // Slogga subito per evitare che l'app si apra per errore
     await signOut(auth); 
     
     isRegistering = false;
@@ -401,9 +401,7 @@ async function adminCreateUser(username, tempPw) {
 
 function renderCurrentUser() {
   if (!state.currentUser) return;
-  // Aggiorna il nome in alto
   document.getElementById('current-user').textContent = state.currentUser.username + (state.currentUser.role === 'admin' ? ' (admin)' : '');
-  // Mostra/Nasconde le sezioni riservate all'admin
   document.querySelectorAll('.admin-only-section').forEach(el => el.classList.toggle('hidden', !isAdmin()));
 }
 function resetTabsToDefault() { document.querySelectorAll('#screen-app nav button').forEach((b, i) => b.classList.toggle('active', i === 0)); document.querySelectorAll('#screen-app main section').forEach((s, i) => s.classList.toggle('active', i === 0)); }
@@ -464,12 +462,15 @@ function renderUsers() {
       </div>`;
   });
   
+  // Sezione Aggiungi Utente (con account)
   html += '<h3>Aggiungi utente (Account reale)</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
-  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
+  
+  // Sezione Aggiungi Nominativo (senza account) - RIPRISTINATA
+  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account. Viene salvato sul tuo dispositivo.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
 
   container.innerHTML = html;
 
-  // Gestione azioni
+  // Gestione azioni (approva, sospendi, ecc.)
   container.querySelectorAll('button[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const action = btn.dataset.action, id = btn.dataset.id, name = btn.dataset.name;
@@ -487,11 +488,11 @@ function renderUsers() {
     });
   });
 
-  // Creazione utente (con account)
+  // Creazione utente (con account Firebase)
   const createBtn = document.getElementById('admin-create-user');
   if (createBtn) { createBtn.addEventListener('click', async () => { const un = document.getElementById('admin-new-username').value; const pw = document.getElementById('admin-new-password').value; const msgEl = document.getElementById('admin-new-msg'); try { await adminCreateUser(un, pw); msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato'; } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; } }); }
 
-  // Aggiunta persona (senza account)
+  // Aggiunta persona (senza account Firebase)
   const addPersonBtn = document.getElementById('add-person-btn');
   if (addPersonBtn) {
       addPersonBtn.addEventListener('click', () => {
