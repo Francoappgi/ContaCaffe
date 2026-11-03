@@ -9,6 +9,7 @@
 <title>☕ ContaCaffè</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236f4e37'/%3E%3Cpath d='M148 215 h216 v110 a80 80 0 0 1 -80 80 h-56 a80 80 0 0 1 -80 -80 z' fill='%23fdfbf8'/%3E%3Cellipse cx='256' cy='215' rx='108' ry='14' fill='%236f4e37'/%3E%3C/svg%3E">
 <style>
+/* ... (CSS identico a prima) ... */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#faf6f0;color:#2b1d10;padding-bottom:80px}
 .screen{display:none}.screen.active{display:block}
@@ -315,12 +316,18 @@ function startListeners() {
     } else if (state.currentUser) { 
       resetTabsToDefault(); showScreen('app'); renderAll(); 
     }
+  }, (error) => {
+    console.error("Firestore non raggiungibile, uso modalità offline.", error);
+    // Se Firestore non risponde, forziamo l'uso dei dati locali
+    aggiornaListaPersone();
+    renderUsers(); renderCurrentUser();
+    if (state.currentUser) { resetTabsToDefault(); showScreen('app'); renderAll(); }
   });
   
   unsubRecords = onSnapshot(collection(db, 'records'), snap => { 
     state.records = snap.docs.map(d => ({ id: d.id, ...d.data() })); 
     renderRecords(); renderStats(); renderBalance(); 
-  });
+  }, (error) => { console.log("Record offline"); });
 }
 
 function stopListeners() { 
@@ -464,15 +471,11 @@ function renderUsers() {
       </div>`;
   });
   
-  // Sezione Aggiungi Utente (con account)
   html += '<h3>Aggiungi utente (Account reale)</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
-  
-  // Sezione Aggiungi Nominativo (senza account)
-  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account. Viene salvato sul tuo dispositivo.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
+  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
 
   container.innerHTML = html;
 
-  // Gestione azioni
   container.querySelectorAll('button[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const action = btn.dataset.action, id = btn.dataset.id, name = btn.dataset.name;
@@ -490,11 +493,9 @@ function renderUsers() {
     });
   });
 
-  // Creazione utente (con account Firebase)
   const createBtn = document.getElementById('admin-create-user');
   if (createBtn) { createBtn.addEventListener('click', async () => { const un = document.getElementById('admin-new-username').value; const pw = document.getElementById('admin-new-password').value; const msgEl = document.getElementById('admin-new-msg'); try { await adminCreateUser(un, pw); msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato'; } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; } }); }
 
-  // Aggiunta persona (senza account Firebase)
   const addPersonBtn = document.getElementById('add-person-btn');
   if (addPersonBtn) {
       addPersonBtn.addEventListener('click', () => {
