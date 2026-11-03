@@ -265,6 +265,7 @@ const ADMIN_EMAIL = 'franco@contacaffe.local';
 
 let state = { currentUser: null, people: [], records: [], users: [] };
 let unsubUsers = null, unsubRecords = null, unsubPeople = null;
+let loadingTimeout = null;
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -280,7 +281,19 @@ function isAdmin() { return state.currentUser && state.currentUser.role === 'adm
 function setLoading(active, text = 'Connessione a Firebase...') {
   const overlay = document.getElementById('loading-overlay');
   const txt = document.getElementById('loading-text');
-  if (active) { txt.textContent = text; overlay.classList.add('active'); }
+  if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
+
+  if (active) { 
+    txt.textContent = text; 
+    overlay.classList.add('active'); 
+    // Timer di sicurezza: se qualcosa si blocca, dopo 6 secondi chiude la rotellina e avvisa
+    loadingTimeout = setTimeout(() => {
+      overlay.classList.remove('active');
+      if (document.getElementById('screen-login').classList.contains('active')) {
+        showAuthMsg('login-msg', 'Connessione lenta o bloccata. Controlla la connessione internet o le regole di Firestore.', 'error');
+      }
+    }, 6000);
+  }
   else { overlay.classList.remove('active'); }
 }
 
@@ -292,6 +305,10 @@ function startListeners() {
     renderUsers(); renderCurrentUser();
     if (state.currentUser && state.currentUser.mustChangePassword) { showScreen('change'); document.getElementById('change-back-wrap').classList.add('hidden'); } 
     else if (state.currentUser) { resetTabsToDefault(); showScreen('app'); renderAll(); }
+  }, (err) => {
+    console.error("Errore Firestore:", err);
+    showAuthMsg('login-msg', 'Errore di lettura database. Controlla le regole di Firestore.', 'error');
+    setLoading(false);
   });
   unsubRecords = onSnapshot(collection(db, 'records'), snap => { state.records = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderRecords(); renderStats(); renderBalance(); });
   unsubPeople = onSnapshot(collection(db, 'people'), snap => {
@@ -305,7 +322,10 @@ function stopListeners() { if (unsubUsers) { unsubUsers(); unsubUsers = null; } 
 
 async function handleLogin(username, password) {
   try { await signInWithEmailAndPassword(auth, usernameToEmail(username), password); return { ok: true }; } 
-  catch (e) { if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(e.code)) return { error: 'Credenziali non valide' }; return { error: 'Errore: ' + e.message }; }
+  catch (e) { 
+    if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(e.code)) return { error: 'Credenziali non valide' }; 
+    return { error: 'Errore: ' + e.message }; 
+  }
 }
 
 async function handleRegister(username, password, password2) {
@@ -325,8 +345,16 @@ async function handleRegister(username, password, password2) {
 async function handleChangePassword(oldPw, newPw, newPw2) {
   if (newPw.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (newPw !== newPw2) return { error: 'Le nuove password non coincidono' };
-  try { await updatePassword(auth.currentUser, newPw); await setDoc(doc(db, 'users', auth.currentUser.uid), { mustChangePassword: false }, { merge: true }); if (state.currentUser) state.currentUser.mustChangePassword = false; return { ok: true }; } 
-  catch (e) { if (e.code === 'auth/requires-recent-login') return { error: 'Sessione scaduta. Esci e rientra.' }; return { error: 'Errore: ' + e.message }; }
+  try { 
+    await updatePassword(auth.currentUser, newPw); 
+    await setDoc(doc(db, 'users', auth.currentUser.uid), { mustChangePassword: false }, { merge: true }); 
+    if (state.currentUser) state.currentUser.mustChangePassword = false; 
+    return { ok: true }; 
+  } 
+  catch (e) { 
+    if (e.code === 'auth/requires-recent-login') return { error: 'Sessione scaduta. Esci e rientra.' }; 
+    return { error: 'Errore: ' + e.message }; 
+  }
 }
 
 async function approveUser(userId) { await setDoc(doc(db, 'users', userId), { status: 'active' }, { merge: true }); toast('Utente approvato'); }
