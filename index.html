@@ -98,7 +98,7 @@ h3:first-child{margin-top:0}
 </head>
 <body>
 
-<div id="loading-overlay"><div class="spinner"></div><div style="color:#6f4e37;font-size:14px">Connessione a Firebase...</div></div>
+<div id="loading-overlay"><div class="spinner"></div><div id="loading-text" style="color:#6f4e37;font-size:14px">Connessione a Firebase...</div></div>
 
 <div id="screen-login" class="screen active">
   <div class="auth-card">
@@ -247,7 +247,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, si
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBtyF1boI3Lrar57On1JMn_WDm6XBXlAww",
+  apiKey: "AIzaSyByF1boI3Lrar57On1JMn_WDm6XBXLwww",
   authDomain: "contacaffe-7613c.firebaseapp.com",
   projectId: "contacaffe-7613c",
   storageBucket: "contacaffe-7613c.firebasestorage.app",
@@ -277,13 +277,21 @@ function clearAuthMsg(elId) { const el = document.getElementById(elId); el.class
 function usernameToEmail(username) { return username.toLowerCase().replace(/[^a-z0-9]/g, '') + '@contacaffe.local'; }
 function isAdmin() { return state.currentUser && state.currentUser.role === 'admin'; }
 
+function setLoading(active, text = 'Connessione a Firebase...') {
+  const overlay = document.getElementById('loading-overlay');
+  const txt = document.getElementById('loading-text');
+  if (active) { txt.textContent = text; overlay.classList.add('active'); }
+  else { overlay.classList.remove('active'); }
+}
+
 function startListeners() {
   stopListeners();
   unsubUsers = onSnapshot(collection(db, 'users'), snap => {
     state.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (state.currentUser) { const fresh = state.users.find(u => u.username === state.currentUser.username); if (fresh) { state.currentUser.role = fresh.role; state.currentUser.mustChangePassword = fresh.mustChangePassword; state.currentUser.status = fresh.status; } }
     renderUsers(); renderCurrentUser();
-    if (state.currentUser && state.currentUser.mustChangePassword) { showScreen('change'); } else if (state.currentUser) { showScreen('app'); renderAll(); }
+    if (state.currentUser && state.currentUser.mustChangePassword) { showScreen('change'); document.getElementById('change-back-wrap').classList.add('hidden'); } 
+    else if (state.currentUser) { resetTabsToDefault(); showScreen('app'); renderAll(); }
   });
   unsubRecords = onSnapshot(collection(db, 'records'), snap => { state.records = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderRecords(); renderStats(); renderBalance(); });
   unsubPeople = onSnapshot(collection(db, 'people'), snap => {
@@ -361,7 +369,8 @@ function renderStats() { const from = document.getElementById('stats-from').valu
 function renderBalanceSelects() { ['balance-a','balance-b'].forEach(id => { const sel = document.getElementById(id); const cur = sel.value; sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (state.people.includes(cur)) sel.value = cur; }); }
 function renderBalance() { const from = document.getElementById('balance-from').value; const to = document.getElementById('balance-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const a = document.getElementById('balance-a').value; const b = document.getElementById('balance-b').value; const resultEl = document.getElementById('balance-result'); if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>'; else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona diverse</span>'; else { const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA; let msg, cls; if (diff === 0) { msg='In pari 🤝'; cls='zero'; } else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; } else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; } resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>'; } const net = netBalance(stats); const overallEl = document.getElementById('balance-overall'); if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato</div>'; else { overallEl.innerHTML = state.people.map(p => { const v = net[p]; const cls = v>0?'positive':v<0?'negative':'zero'; const txt = v>0?'+'+v:String(v); const desc = v>0?'in credito':v<0?'in debito':'in pari'; return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>'; }).join(''); } const suggestEl = document.getElementById('balance-suggest'); const settlements = suggestSettlements(net); if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio 🎉</div>'; else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join(''); }
 function renderSettings() { if (!isAdmin()) return; const c = document.getElementById('settings-people'); c.innerHTML = state.people.map(p => { const isRegistered = state.users.some(x => x.username === p); const removeBtn = isRegistered ? '' : '<button data-name="'+esc(p)+'">✕</button>'; return '<div class="person-chip">'+esc(p)+(isRegistered?' <small style="color:#8a7562;font-size:10px">(reg)</small>':'')+removeBtn+'</div>'; }).join(''); c.querySelectorAll('button').forEach(btn => { btn.addEventListener('click', async () => { if (!confirm('Rimuovere?')) return; const snap = await getDocs(collection(db, 'people')); for (const d of snap.docs) { if (d.data().name === btn.dataset.name) await deleteDoc(doc(db, 'people', d.id)); } }); }); }
-  function renderUsers() {
+
+function renderUsers() {
   if (!isAdmin()) return;
   const container = document.getElementById('users-content');
   const pending = state.users.filter(x => x.status === 'pending');
@@ -396,23 +405,23 @@ function setupAuthEvents() {
   document.getElementById('show-login').addEventListener('click', () => { clearAuthMsg('reg-msg'); showScreen('login'); });
 
   document.getElementById('login-form').addEventListener('submit', async e => {
-    e.preventDefault(); clearAuthMsg('login-msg'); document.getElementById('loading-overlay').classList.add('active');
+    e.preventDefault(); clearAuthMsg('login-msg'); setLoading(true, 'Verifica credenziali...');
     const res = await handleLogin(document.getElementById('login-username').value.trim(), document.getElementById('login-password').value);
-    document.getElementById('loading-overlay').classList.remove('active');
+    setLoading(false);
     if (res.error) { showAuthMsg('login-msg', res.error, 'error'); } else { document.getElementById('login-password').value = ''; }
   });
 
   document.getElementById('register-form').addEventListener('submit', async e => {
-    e.preventDefault(); clearAuthMsg('reg-msg'); document.getElementById('loading-overlay').classList.add('active');
+    e.preventDefault(); clearAuthMsg('reg-msg'); setLoading(true, 'Invio richiesta...');
     const res = await handleRegister(document.getElementById('reg-username').value, document.getElementById('reg-password').value, document.getElementById('reg-password2').value);
-    document.getElementById('loading-overlay').classList.remove('active');
+    setLoading(false);
     if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else { showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success'); document.getElementById('register-form').reset(); }
   });
 
   document.getElementById('change-form').addEventListener('submit', async e => {
-    e.preventDefault(); clearAuthMsg('change-msg'); document.getElementById('loading-overlay').classList.add('active');
+    e.preventDefault(); clearAuthMsg('change-msg'); setLoading(true, 'Cambio password...');
     const res = await handleChangePassword(document.getElementById('change-old').value, document.getElementById('change-new').value, document.getElementById('change-new2').value);
-    document.getElementById('loading-overlay').classList.remove('active');
+    setLoading(false);
     if (res.error) { showAuthMsg('change-msg', res.error, 'error'); } else { document.getElementById('change-form').reset(); toast('✓ Password cambiata'); }
   });
 
@@ -427,9 +436,9 @@ function setupAppEvents() {
   document.getElementById('add-submit').addEventListener('click', async () => {
     const date = document.getElementById('add-date').value; const payer = document.getElementById('add-payer').value; const beneficiaries = [...document.querySelectorAll('#add-beneficiaries input:checked')].map(i => i.value);
     if (!date || !payer || beneficiaries.length === 0) return alert('Compila tutto');
-    document.getElementById('loading-overlay').classList.add('active');
+    setLoading(true, 'Salvataggio...');
     await addDoc(collection(db, 'records'), { date, payer, beneficiaries, createdAt: serverTimestamp() });
-    document.getElementById('loading-overlay').classList.remove('active');
+    setLoading(false);
     document.getElementById('add-payer').value = ''; document.getElementById('add-date').value = today(); document.querySelectorAll('#add-beneficiaries input').forEach(i => i.checked = false); toast('✓ Registrato');
   });
 
@@ -453,21 +462,29 @@ function setupAppEvents() {
   document.getElementById('reset-btn').addEventListener('click', () => { alert('Per svuotare il database, fallo dalla console Firebase (Firestore).'); });
 }
 
+async function handleLogout() {
+  setLoading(true, 'Uscita...');
+  stopListeners();
+  try { await signOut(auth); } catch(e) {}
+  state.currentUser = null;
+  setLoading(false);
+  showScreen('login');
+}
+
 onAuthStateChanged(auth, async (user) => {
-  document.getElementById('loading-overlay').classList.add('active');
   if (user) {
+    setLoading(true, 'Caricamento profilo...');
     try {
       const docRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.status === 'pending') { await signOut(auth); showAuthMsg('login-msg', 'In attesa di approvazione', 'error'); document.getElementById('loading-overlay').classList.remove('active'); return; }
-        if (data.status === 'suspended' || data.status === 'deactivated') { await signOut(auth); showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error'); document.getElementById('loading-overlay').classList.remove('active'); return; }
+        if (data.status === 'pending') { await signOut(auth); showAuthMsg('login-msg', 'In attesa di approvazione', 'error'); setLoading(false); return; }
+        if (data.status === 'suspended' || data.status === 'deactivated') { await signOut(auth); showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error'); setLoading(false); return; }
         
         state.currentUser = { username: data.username, role: data.role, mustChangePassword: data.mustChangePassword, status: data.status };
         startListeners();
         
-        // Aggiorna ruolo per admin
         if (data.username === 'Franco' && data.role !== 'admin') {
           await setDoc(docRef, { role: 'admin' }, { merge: true });
           state.currentUser.role = 'admin';
@@ -476,33 +493,37 @@ onAuthStateChanged(auth, async (user) => {
         renderCurrentUser();
         if (state.currentUser.mustChangePassword) { showScreen('change'); document.getElementById('change-back-wrap').classList.add('hidden'); } 
         else { resetTabsToDefault(); showScreen('app'); renderAll(); }
+      } else {
+        showAuthMsg('login-msg', 'Profilo non trovato su Firestore.', 'error');
+        await signOut(auth);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+      showAuthMsg('login-msg', 'Errore di connessione: ' + e.message, 'error'); 
+    }
+    setLoading(false);
   } else {
-    state.currentUser = null; stopListeners(); showScreen('login');
+    state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
   }
-  document.getElementById('loading-overlay').classList.remove('active');
 });
 
 async function init() {
   document.getElementById('add-date').value = today();
   setupNav(); setupAuthEvents(); setupAppEvents();
   
-  // Controlla se esiste l'admin Franco. Se no, lo crea.
-  const usersSnap = await getDocs(collection(db, 'users'));
-  const adminExists = usersSnap.docs.some(d => d.data().role === 'admin');
-  if (!adminExists) {
-    try {
+  try {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const adminExists = usersSnap.docs.some(d => d.data().role === 'admin');
+    if (!adminExists) {
       const secondaryApp = initializeApp(firebaseConfig, 'SecondaryInit');
       const secondaryAuth = getAuth(secondaryApp);
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, ADMIN_EMAIL, '12345');
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, ADMIN_EMAIL, '123456');
       await setDoc(doc(db, 'users', cred.user.uid), {
         username: 'Franco', email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePassword: true, createdAt: serverTimestamp()
       });
       await signOut(secondaryAuth);
-      console.log('Admin Franco creato');
-    } catch (e) { console.log('Admin già esistente o errore:', e.message); }
-  }
+    }
+  } catch (e) { console.log('Admin già esistente o errore:', e.message); }
 }
 init();
 </script>
