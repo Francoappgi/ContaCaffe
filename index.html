@@ -87,8 +87,11 @@ h3:first-child{margin-top:0}
 .hint{font-size:12px;color:#8a7562;line-height:1.5;margin-top:8px}
 .user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8dd;gap:8px;flex-wrap:wrap}
 .user-row:last-child{border-bottom:none}
-.user-row .user-name{font-weight:600;font-size:14px}
+.user-row .user-name{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
 .user-row .user-actions{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 6px;border-radius:10px;font-weight:normal;}
+.badge.reg{background:#e8f5e9;color:#27ae60}
+.badge.nonreg{background:#fff3e0;color:#e67e22}
 .hidden{display:none!important}
 #loading-overlay{position:fixed;inset:0;background:rgba(250,246,240,0.8);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:999}
 #loading-overlay.active{display:flex}
@@ -213,21 +216,9 @@ h3:first-child{margin-top:0}
       <div class="card"><h2>Pareggio suggerito</h2><div id="balance-suggest"></div></div>
     </section>
     <section id="tab-users" class="admin-only-section">
-      <div class="card"><h2>Gestione utenti</h2><div id="users-content"></div></div>
-    </section>
-    <section id="tab-settings" class="admin-only-section">
       <div class="card">
-        <h2>Persone (non registrate)</h2>
-        <p class="hint" style="margin:0 0 10px">Nomi che non hanno un account. Vengono salvati solo sul tuo dispositivo.</p>
-        <div id="settings-people" class="people-list"></div>
-        <div class="add-person">
-          <input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30">
-          <button class="btn" id="add-person-btn">+</button>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Zona pericolosa</h2>
-        <button class="btn btn-danger" id="reset-btn">🗑 Cancella tutti i dati</button>
+        <h2>Gestione utenti</h2>
+        <div id="users-content"></div>
       </div>
     </section>
   </main>
@@ -237,7 +228,6 @@ h3:first-child{margin-top:0}
     <button data-tab="stats"><span class="icon">📊</span>Statistiche</button>
     <button data-tab="balance"><span class="icon">⚖️</span>Saldi</button>
     <button data-tab="users" class="admin-only-section"><span class="icon">👥</span>Utenti</button>
-    <button data-tab="settings" class="admin-only-section"><span class="icon">⚙️</span>Impost.</button>
   </nav>
 </div>
 
@@ -262,10 +252,10 @@ const db = getFirestore(app);
 const DEFAULT_PEOPLE = ['Franco','Salvatore','Michelangelo','Maurizio','Eleonora'];
 const MIN_PW_LEN = 6;
 const ADMIN_EMAIL = 'franco@contacaffe.local';
-const LOCAL_PEOPLE_KEY = 'caffe_local_people'; // NUOVO: Salvataggio locale per i nomi non registrati
+const LOCAL_PEOPLE_KEY = 'caffe_local_people';
 
 let state = { currentUser: null, people: [], records: [], users: [], localPeople: [] };
-let unsubUsers = null, unsubRecords = null, unsubPeople = null;
+let unsubUsers = null, unsubRecords = null;
 let isRegistering = false; 
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -288,6 +278,12 @@ function caricaPersoneLocali() {
     const local = localStorage.getItem(LOCAL_PEOPLE_KEY);
     if (local) state.localPeople = JSON.parse(local);
     else state.localPeople = [];
+}
+
+function aggiornaListaPersone() {
+    const fromUsers = state.users.filter(u => u.status === 'active').map(u => u.username);
+    state.people = [...new Set([...DEFAULT_PEOPLE, ...state.localPeople, ...fromUsers])];
+    renderPayerSelect(); renderBeneficiaries(); renderBalanceSelects(); renderRecords(); renderStats(); renderBalance();
 }
 
 function startListeners() {
@@ -313,20 +309,11 @@ function startListeners() {
     state.records = snap.docs.map(d => ({ id: d.id, ...d.data() })); 
     renderRecords(); renderStats(); renderBalance(); 
   });
-  
-  // Rimuoviamo il listener da Firestore per i "people" perché usiamo il localStorage
-}
-
-function aggiornaListaPersone() {
-    const fromUsers = state.users.filter(u => u.status === 'active').map(u => u.username);
-    state.people = [...new Set([...DEFAULT_PEOPLE, ...state.localPeople, ...fromUsers])];
-    renderPayerSelect(); renderBeneficiaries(); renderBalanceSelects(); renderSettings(); renderRecords(); renderStats(); renderBalance();
 }
 
 function stopListeners() { 
   if (unsubUsers) { unsubUsers(); unsubUsers = null; } 
   if (unsubRecords) { unsubRecords(); unsubRecords = null; } 
-  if (unsubPeople) { unsubPeople(); unsubPeople = null; } 
 }
 
 async function handleLogin(username, password) {
@@ -354,12 +341,14 @@ async function handleRegister(username, password, password2) {
     }
     const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
+    
+    // Importante: sloggiamo subito per non far vedere l'app
     await signOut(auth); 
+    
     isRegistering = false;
     return { ok: true };
   } catch (e) { 
     isRegistering = false;
-    // Se l'email è già in uso, è perché è già stato registrato (magari in un test precedente)
     if (e.code === 'auth/email-already-in-use') {
         return { error: 'Questo nome utente ha già inviato una richiesta in passato.' };
     }
@@ -420,35 +409,92 @@ function renderRecords() { const from = document.getElementById('list-from').val
 function renderStats() { const from = document.getElementById('stats-from').value; const to = document.getElementById('stats-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const peopleEl = document.getElementById('stats-people'); if (f.length === 0) { peopleEl.innerHTML = '<div class="empty">Nessun dato</div>'; } else { peopleEl.innerHTML = state.people.map(p => { const net = (stats.offered[p]||0) - (stats.received[p]||0); const nc = net>0?'positive':net<0?'negative':'zero'; const nt = net>0?'+'+net:String(net); return '<div class="stat-card"><div class="stat-name">'+esc(p)+'</div><div class="stat-grid"><div><span>Pagati</span><b>'+(stats.paid[p]||0)+'</b></div><div><span>Offerti</span><b>'+(stats.offered[p]||0)+'</b></div><div><span>Ricevuti</span><b>'+(stats.received[p]||0)+'</b></div><div><span>Saldo</span><b class="'+nc+'">'+nt+'</b></div></div></div>'; }).join(''); } const pairsEl = document.getElementById('stats-pairs'); const pairs = []; state.people.forEach(a => state.people.forEach(b => { if (a !== b && (stats.flow[a]?.[b]||0) > 0) pairs.push({a, b, n: stats.flow[a][b]}); })); if (pairs.length === 0) pairsEl.innerHTML = '<div class="empty">Nessun pagamento</div>'; else { pairs.sort((x,y)=>y.n-x.n); pairsEl.innerHTML = pairs.map(x => '<div class="stats-row"><span>'+esc(x.a)+' ha pagato a <b>'+esc(x.b)+'</b></span><span class="val">'+x.n+' caffè</span></div>').join(''); } }
 function renderBalanceSelects() { ['balance-a','balance-b'].forEach(id => { const sel = document.getElementById(id); const cur = sel.value; sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (state.people.includes(cur)) sel.value = cur; }); }
 function renderBalance() { const from = document.getElementById('balance-from').value; const to = document.getElementById('balance-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const a = document.getElementById('balance-a').value; const b = document.getElementById('balance-b').value; const resultEl = document.getElementById('balance-result'); if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>'; else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona diverse</span>'; else { const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA; let msg, cls; if (diff === 0) { msg='In pari 🤝'; cls='zero'; } else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; } else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; } resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>'; } const net = netBalance(stats); const overallEl = document.getElementById('balance-overall'); if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato</div>'; else { overallEl.innerHTML = state.people.map(p => { const v = net[p]; const cls = v>0?'positive':v<0?'negative':'zero'; const txt = v>0?'+'+v:String(v); const desc = v>0?'in credito':v<0?'in debito':'in pari'; return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>'; }).join(''); } const suggestEl = document.getElementById('balance-suggest'); const settlements = suggestSettlements(net); if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio 🎉</div>'; else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join(''); }
-function renderSettings() { if (!isAdmin()) return; const c = document.getElementById('settings-people'); c.innerHTML = state.people.map(p => { const isRegistered = state.users.some(x => x.username === p); const removeBtn = isRegistered ? '' : '<button data-name="'+esc(p)+'">✕</button>'; return '<div class="person-chip">'+esc(p)+(isRegistered?' <small style="color:#8a7562;font-size:10px">(reg)</small>':'')+removeBtn+'</div>'; }).join(''); c.querySelectorAll('button').forEach(btn => { btn.addEventListener('click', () => { if (!confirm('Rimuovere?')) return; state.localPeople = state.localPeople.filter(p => p !== btn.dataset.name); localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople)); aggiornaListaPersone(); }); }); }
 
+// NUOVO: Gestione unificata di TUTTI (registrati e non)
 function renderUsers() {
   if (!isAdmin()) return;
   const container = document.getElementById('users-content');
-  const pending = state.users.filter(x => x.status === 'pending');
-  const active = state.users.filter(x => x.status === 'active' && x.role !== 'admin');
-  const suspended = state.users.filter(x => x.status === 'suspended');
-  const deactivated = state.users.filter(x => x.status === 'deactivated');
-  let html = '';
-  if (pending.length > 0) { html += '<h3>In attesa ('+pending.length+')</h3>'; html += pending.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="approve" data-id="'+esc(x.id)+'">✓ Approva</button><button class="btn-small btn-danger" data-action="reject" data-id="'+esc(x.id)+'">✕ Rifiuta</button></div></div>').join(''); }
-  if (active.length > 0) { html += '<h3>Attivi ('+active.length+')</h3>'; html += active.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn-secondary" data-action="reset-pw" data-id="'+esc(x.id)+'">🔑 Reset pwd</button><button class="btn-small btn-secondary" data-action="suspend" data-id="'+esc(x.id)+'">⏸ Sospendi</button><button class="btn-small btn-danger" data-action="deactivate" data-id="'+esc(x.id)+'">🚫 Disattiva</button></div></div>').join(''); }
-  if (suspended.length > 0) { html += '<h3>Sospesi ('+suspended.length+')</h3>'; html += suspended.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-id="'+esc(x.id)+'">▶ Riattiva</button></div></div>').join(''); }
-  if (deactivated.length > 0) { html += '<h3>Disattivati ('+deactivated.length+')</h3>'; html += deactivated.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-id="'+esc(x.id)+'">▶ Riattiva</button></div></div>').join(''); }
-  if (pending.length + active.length + suspended.length + deactivated.length === 0) html += '<div class="empty">Nessun utente</div>';
-  html += '<h3>Aggiungi utente</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
+  
+  // Uniamo tutti i nomi
+  const tuttiINomi = [...new Set([...state.people, ...state.users.map(u => u.username)])];
+  
+  let html = '<h3>Tutti i nominativi</h3>';
+  
+  tuttiINomi.forEach(nome => {
+      const userDoc = state.users.find(u => u.username === nome);
+      const isLocal = state.localPeople.includes(nome) && !userDoc;
+      
+      let statoBadge = '';
+      let azioni = '';
+      
+      if (userDoc) {
+          if (userDoc.role === 'admin') statoBadge = '<span class="badge reg">Admin</span>';
+          else if (userDoc.status === 'active') statoBadge = '<span class="badge reg">Registrato</span>';
+          else if (userDoc.status === 'pending') statoBadge = '<span class="badge nonreg" style="background:#fff3e0;color:#e67e22">In attesa</span>';
+          else statoBadge = '<span class="badge nonreg" style="background:#fde8e8;color:#c0392b">Sospeso</span>';
+          
+          if (userDoc.role !== 'admin') {
+              azioni += `<button class="btn-small btn-secondary" data-action="reset-pw" data-id="${esc(userDoc.id)}">🔑</button>`;
+              if (userDoc.status === 'pending') azioni += `<button class="btn-small btn" data-action="approve" data-id="${esc(userDoc.id)}">✓ Approva</button>`;
+              else if (userDoc.status === 'active') azioni += `<button class="btn-small btn-secondary" data-action="suspend" data-id="${esc(userDoc.id)}">⏸ Sospendi</button>`;
+              else azioni += `<button class="btn-small btn" data-action="activate" data-id="${esc(userDoc.id)}">▶ Riattiva</button>`;
+          }
+      } else if (isLocal) {
+          statoBadge = '<span class="badge nonreg">Non è utente</span>';
+          azioni = `<button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑 Elimina</button>`;
+      } else {
+          // È uno dei nomi di default (Franco, Salvatore, ecc.) ma non ha ancora un account
+          statoBadge = '<span class="badge nonreg">Non è utente</span>';
+      }
+      
+      html += `<div class="user-row">
+        <span class="user-name">${esc(nome)} ${statoBadge}</span>
+        <div class="user-actions">${azioni}</div>
+      </div>`;
+  });
+  
+  html += '<h3>Aggiungi utente (Account reale)</h3><div class="add-person"><input type="text" id="admin-new-username" placeholder="Nome utente"><input type="text" id="admin-new-password" placeholder="Password temporanea"><button class="btn" id="admin-create-user">+</button></div><div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
+  html += '<h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3><p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account. Viene salvato solo sul tuo dispositivo.</p><div class="add-person"><input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30"><button class="btn" id="add-person-btn">+</button></div>';
+
   container.innerHTML = html;
+
+  // Gestione azioni
   container.querySelectorAll('button[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const action = btn.dataset.action, id = btn.dataset.id;
-      if (action === 'approve') await approveUser(id); else if (action === 'reject') await rejectUser(id); else if (action === 'suspend') await setUserStatus(id, 'suspended'); else if (action === 'deactivate') { if (confirm('Disattivare?')) await setUserStatus(id, 'deactivated'); } else if (action === 'activate') await setUserStatus(id, 'active');
+      const action = btn.dataset.action, id = btn.dataset.id, name = btn.dataset.name;
+      if (action === 'approve') await approveUser(id); 
+      else if (action === 'suspend') await setUserStatus(id, 'suspended'); 
+      else if (action === 'activate') await setUserStatus(id, 'active');
       else if (action === 'reset-pw') { const temp = prompt('Nuova password temporanea (min 6):'); if (temp) { try { await adminResetPassword(id, temp); alert('Fatto! L\'utente dovrà cambiarla.'); } catch (e) { alert('Errore: ' + e.message); } } }
+      else if (action === 'delete-local') {
+          if (confirm('Eliminare ' + name + '?')) {
+              state.localPeople = state.localPeople.filter(p => p !== name);
+              localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
+              aggiornaListaPersone(); renderUsers();
+          }
+      }
     });
   });
+
+  // Creazione utente (con account)
   const createBtn = document.getElementById('admin-create-user');
   if (createBtn) { createBtn.addEventListener('click', async () => { const un = document.getElementById('admin-new-username').value; const pw = document.getElementById('admin-new-password').value; const msgEl = document.getElementById('admin-new-msg'); try { await adminCreateUser(un, pw); msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato'; } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; } }); }
+
+  // Aggiunta persona (senza account)
+  const addPersonBtn = document.getElementById('add-person-btn');
+  if (addPersonBtn) {
+      addPersonBtn.addEventListener('click', () => {
+        const input = document.getElementById('new-person'); const name = input.value.trim(); 
+        if (!name) return; if (state.people.includes(name)) return alert('Esiste già');
+        state.localPeople.push(name);
+        localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
+        input.value = ''; toast('✓ Persona aggiunta');
+        aggiornaListaPersone(); renderUsers();
+      });
+  }
 }
 
-function renderAll() { renderPayerSelect(); renderBeneficiaries(); renderRecords(); renderStats(); renderBalanceSelects(); renderBalance(); renderSettings(); renderUsers(); }
+function renderAll() { renderPayerSelect(); renderBeneficiaries(); renderRecords(); renderStats(); renderBalanceSelects(); renderBalance(); renderUsers(); }
 
 function setupNav() { document.querySelectorAll('#screen-app nav button').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active')); document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-' + btn.dataset.tab).classList.add('active'); }); }); }
 
@@ -467,7 +513,10 @@ function setupAuthEvents() {
     e.preventDefault(); clearAuthMsg('reg-msg'); setLoading(true);
     const res = await handleRegister(document.getElementById('reg-username').value, document.getElementById('reg-password').value, document.getElementById('reg-password2').value);
     setLoading(false);
-    if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else { showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success'); document.getElementById('register-form').reset(); }
+    if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else { 
+        showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success'); 
+        document.getElementById('register-form').reset(); 
+    }
   });
 
   document.getElementById('change-form').addEventListener('submit', async e => {
@@ -506,21 +555,7 @@ function setupAppEvents() {
     });
   });
 
-  // SALVATAGGIO LOCALE: aggiunge il nome in localStorage senza far girare la rotellina di Firestore
-  document.getElementById('add-person-btn').addEventListener('click', () => {
-    const input = document.getElementById('new-person'); 
-    const name = input.value.trim(); 
-    if (!name) return; 
-    if (state.people.includes(name)) return alert('Esiste già');
-    
-    state.localPeople.push(name);
-    localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
-    input.value = ''; 
-    toast('✓ Persona aggiunta');
-    aggiornaListaPersone();
-  });
-
-  document.getElementById('reset-btn').addEventListener('click', () => { alert('Per svuotare il database, fallo dalla console Firebase (Firestore).'); });
+  // Rimossi i vecchi listener per add-person e reset (ora sono dentro renderUsers)
 }
 
 async function handleLogout() {
