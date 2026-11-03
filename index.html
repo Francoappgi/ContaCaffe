@@ -515,4 +515,457 @@ function netBalance(stats) {
 }
 function suggestSettlements(net) {
   const c=[], d=[];
-  Object.keys(net).forEach(p => { if (net
+  Object.keys(net).forEach(p => { if (net[p]>0) c.push({p, v:net[p]}); else if (net[p]<0) d.push({p, v:-net[p]}); });
+  c.sort((a,b)=>b.v-a.v); d.sort((a,b)=>b.v-a.v);
+  const r=[]; let i=0, j=0;
+  while (i<c.length && j<d.length) {
+    const cc=c[i], dd=d[j], amt=Math.min(cc.v, dd.v);
+    if (amt>0) r.push({from: dd.p, to: cc.p, amount: amt});
+    cc.v-=amt; dd.v-=amt;
+    if (cc.v===0) i++;
+    if (dd.v===0) j++;
+  }
+  return r;
+}
+
+function renderPayerSelect() {
+  const sel = document.getElementById('add-payer');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- Seleziona --</option>' +
+    state.people.map(p => '<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
+  if (cur && state.people.includes(cur)) sel.value = cur;
+}
+function renderBeneficiaries() {
+  const c = document.getElementById('add-beneficiaries');
+  const checked = new Set([...c.querySelectorAll('input:checked')].map(i=>i.value));
+  const payer = document.getElementById('add-payer').value;
+  c.innerHTML = state.people.map(p => {
+    const isChecked = checked.has(p) || p === payer;
+    return '<label class="checkbox-item"><input type="checkbox" value="'+esc(p)+'" '+(isChecked?'checked':'')+'><span>'+esc(p)+'</span></label>';
+  }).join('');
+}
+function renderRecords() {
+  const from = document.getElementById('list-from').value;
+  const to = document.getElementById('list-to').value;
+  const f = filterByDate(state.records, from, to).sort((a,b)=> b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));
+  const c = document.getElementById('list-records');
+  if (f.length === 0) { c.innerHTML = '<div class="empty">Nessun record nel periodo selezionato</div>'; return; }
+  c.innerHTML = f.map(r => {
+    return '<div class="record"><div class="info"><div class="date">'+fmtDate(r.date)+'</div><div class="payer">'+esc(r.payer)+' ha pagato '+r.beneficiaries.length+' caffè</div><div class="beneficiaries">per: '+r.beneficiaries.map(esc).join(', ')+'</div></div><button class="delete" data-id="'+esc(String(r.id))+'">✕</button></div>';
+  }).join('');
+  c.querySelectorAll('.delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Eliminare questo record?')) return;
+      state.records = state.records.filter(r => String(r.id) !== btn.dataset.id);
+      save(); renderRecords(); renderStats(); renderBalance();
+    });
+  });
+}
+function renderStats() {
+  const from = document.getElementById('stats-from').value;
+  const to = document.getElementById('stats-to').value;
+  const f = filterByDate(state.records, from, to);
+  const stats = computeStats(f);
+  const peopleEl = document.getElementById('stats-people');
+  if (f.length === 0) {
+    peopleEl.innerHTML = '<div class="empty">Nessun dato nel periodo</div>';
+  } else {
+    peopleEl.innerHTML = state.people.map(p => {
+      const net = (stats.offered[p]||0) - (stats.received[p]||0);
+      const nc = net>0?'positive':net<0?'negative':'zero';
+      const nt = net>0?'+'+net:String(net);
+      return '<div class="stat-card"><div class="stat-name">'+esc(p)+'</div><div class="stat-grid"><div><span>Pagati</span><b>'+(stats.paid[p]||0)+'</b></div><div><span>Offerti</span><b>'+(stats.offered[p]||0)+'</b></div><div><span>Ricevuti</span><b>'+(stats.received[p]||0)+'</b></div><div><span>Saldo</span><b class="'+nc+'">'+nt+'</b></div></div></div>';
+    }).join('');
+  }
+  const pairsEl = document.getElementById('stats-pairs');
+  const pairs = [];
+  state.people.forEach(a => state.people.forEach(b => {
+    if (a !== b && (stats.flow[a]?.[b]||0) > 0) pairs.push({a, b, n: stats.flow[a][b]});
+  }));
+  if (pairs.length === 0) pairsEl.innerHTML = '<div class="empty">Nessun pagamento tra persone nel periodo</div>';
+  else {
+    pairs.sort((x,y)=>y.n-x.n);
+    pairsEl.innerHTML = pairs.map(x => '<div class="stats-row"><span>'+esc(x.a)+' ha pagato a <b>'+esc(x.b)+'</b></span><span class="val">'+x.n+' caffè</span></div>').join('');
+  }
+}
+function renderBalanceSelects() {
+  ['balance-a','balance-b'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
+    if (state.people.includes(cur)) sel.value = cur;
+  });
+}
+function renderBalance() {
+  const from = document.getElementById('balance-from').value;
+  const to = document.getElementById('balance-to').value;
+  const f = filterByDate(state.records, from, to);
+  const stats = computeStats(f);
+  const a = document.getElementById('balance-a').value;
+  const b = document.getElementById('balance-b').value;
+  const resultEl = document.getElementById('balance-result');
+  if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>';
+  else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona due persone diverse</span>';
+  else {
+    const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA;
+    let msg, cls;
+    if (diff === 0) { msg='In pari 🤝'; cls='zero'; }
+    else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; }
+    else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; }
+    resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>';
+  }
+  const net = netBalance(stats);
+  const overallEl = document.getElementById('balance-overall');
+  if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato nel periodo</div>';
+  else {
+    overallEl.innerHTML = state.people.map(p => {
+      const v = net[p];
+      const cls = v>0?'positive':v<0?'negative':'zero';
+      const txt = v>0?'+'+v:String(v);
+      const desc = v>0?'in credito':v<0?'in debito':'in pari';
+      return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>';
+    }).join('');
+  }
+  const suggestEl = document.getElementById('balance-suggest');
+  const settlements = suggestSettlements(net);
+  if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio necessario 🎉</div>';
+  else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join('');
+}
+function renderSettings() {
+  const u = getCurrentUser();
+  if (!isAdmin(u)) return;
+  const c = document.getElementById('settings-people');
+  c.innerHTML = state.people.map(p => {
+    const isRegistered = state.users.some(x => x.username === p);
+    const removeBtn = isRegistered ? '' : '<button data-name="'+esc(p)+'">✕</button>';
+    return '<div class="person-chip">'+esc(p)+(isRegistered?' <small style="color:#8a7562;font-size:10px">(registrato)</small>':'')+removeBtn+'</div>';
+  }).join('');
+  c.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Rimuovere "'+btn.dataset.name+'"?')) return;
+      state.people = state.people.filter(p => p !== btn.dataset.name);
+      save(); renderAll();
+    });
+  });
+}
+function renderUsers() {
+  const u = getCurrentUser();
+  if (!isAdmin(u)) return;
+  const container = document.getElementById('users-content');
+  const pending = state.users.filter(x => x.status === 'pending');
+  const active = state.users.filter(x => x.status === 'active' && x.role !== 'admin');
+  const suspended = state.users.filter(x => x.status === 'suspended');
+  const deactivated = state.users.filter(x => x.status === 'deactivated');
+
+  let html = '';
+  if (pending.length > 0) {
+    html += '<h3>Richieste in attesa ('+pending.length+')</h3>';
+    html += pending.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="approve" data-user="'+esc(x.username)+'">✓ Approva</button><button class="btn-small btn-danger" data-action="reject" data-user="'+esc(x.username)+'">✕ Rifiuta</button></div></div>').join('');
+  }
+  if (active.length > 0) {
+    html += '<h3>Utenti attivi ('+active.length+')</h3>';
+    html += active.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn-secondary" data-action="reset-pw" data-user="'+esc(x.username)+'">🔑 Reset pwd</button><button class="btn-small btn-secondary" data-action="suspend" data-user="'+esc(x.username)+'">⏸ Sospendi</button><button class="btn-small btn-danger" data-action="deactivate" data-user="'+esc(x.username)+'">🚫 Disattiva</button></div></div>').join('');
+  }
+  if (suspended.length > 0) {
+    html += '<h3>Sospesi ('+suspended.length+')</h3>';
+    html += suspended.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-user="'+esc(x.username)+'">▶ Riattiva</button></div></div>').join('');
+  }
+  if (deactivated.length > 0) {
+    html += '<h3>Disattivati ('+deactivated.length+')</h3>';
+    html += deactivated.map(x => '<div class="user-row"><span class="user-name">'+esc(x.username)+'</span><div class="user-actions"><button class="btn-small btn" data-action="activate" data-user="'+esc(x.username)+'">▶ Riattiva</button></div></div>').join('');
+  }
+  if (pending.length + active.length + suspended.length + deactivated.length === 0) {
+    html += '<div class="empty">Nessun utente registrato</div>';
+  }
+  html += '<h3>Aggiungi utente manualmente</h3>' +
+    '<p class="hint" style="margin:0 0 8px">L\'utente sarà attivo subito, dovrà cambiare la password al primo accesso.</p>' +
+    '<div class="add-person">' +
+      '<input type="text" id="admin-new-username" placeholder="Nome utente" maxlength="30">' +
+      '<input type="text" id="admin-new-password" placeholder="Password temporanea">' +
+      '<button class="btn" id="admin-create-user">+</button>' +
+    '</div>' +
+    '<div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>';
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.action, user = btn.dataset.user;
+      if (action === 'approve') approveUser(user);
+      else if (action === 'reject') rejectUser(user);
+      else if (action === 'suspend') setUserStatus(user, 'suspended');
+      else if (action === 'deactivate') { if (confirm('Disattivare '+user+'?')) setUserStatus(user, 'deactivated'); }
+      else if (action === 'activate') setUserStatus(user, 'active');
+      else if (action === 'reset-pw') {
+        const temp = prompt('Nuova password temporanea per '+user+' (min '+MIN_PW_LEN+' caratteri):');
+        if (!temp) return;
+        try { await adminResetPassword(user, temp); alert('Password reimpostata. L\'utente dovrà cambiarla al primo accesso.'); }
+        catch (e) { alert('Errore: ' + e.message); }
+      }
+      renderUsers(); renderAll();
+    });
+  });
+  const createBtn = document.getElementById('admin-create-user');
+  if (createBtn) {
+    createBtn.addEventListener('click', async () => {
+      const un = document.getElementById('admin-new-username').value;
+      const pw = document.getElementById('admin-new-password').value;
+      const msgEl = document.getElementById('admin-new-msg');
+      try {
+        await adminCreateUser(un, pw);
+        msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Utente creato';
+        renderUsers(); renderAll();
+      } catch (e) {
+        msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message;
+      }
+    });
+  }
+}
+
+function renderAll() {
+  renderPayerSelect(); renderBeneficiaries(); renderRecords();
+  renderStats(); renderBalanceSelects(); renderBalance();
+  renderSettings(); renderUsers();
+}
+
+function updateScreens() {
+  const u = getCurrentUser();
+  if (!u) { showScreen('login'); return; }
+  if (u.mustChangePassword) {
+    document.getElementById('change-back-wrap').classList.add('hidden');
+    showScreen('change');
+    return;
+  }
+  resetTabsToDefault();
+  showScreen('app');
+  renderCurrentUser();
+  renderAll();
+}
+
+function setupNav() {
+  document.querySelectorAll('#screen-app nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+function setupAuthEvents() {
+  document.getElementById('show-register').addEventListener('click', () => {
+    clearAuthMsg('login-msg'); clearAuthMsg('reg-msg'); showScreen('register');
+  });
+  document.getElementById('show-login').addEventListener('click', () => {
+    clearAuthMsg('login-msg'); clearAuthMsg('reg-msg'); showScreen('login');
+  });
+
+  document.getElementById('reset-app').addEventListener('click', () => {
+    if (!confirm('Ripristinare l\'account admin?\n\n• Verranno cancellati TUTTI gli utenti (inclusi eventuali registrati)\n• Admin Franco / 12345 sarà ricreato\n• I RECORD DEI CAFFÈ rimarranno intatti\n\nContinuare?')) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const d = raw ? JSON.parse(raw) : { people: [], records: [], users: [] };
+      d.users = [];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    } catch (e) { console.error(e); }
+    clearSession();
+    alert('Admin ripristinato. La pagina si ricaricherà.');
+    location.reload();
+  });
+
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAuthMsg('login-msg');
+    const un = document.getElementById('login-username').value.trim();
+    const pw = document.getElementById('login-password').value;
+    try {
+      const res = await login(un, pw);
+      if (res.error) { showAuthMsg('login-msg', res.error, 'error'); return; }
+      document.getElementById('login-password').value = '';
+      updateScreens();
+    } catch (err) {
+      showAuthMsg('login-msg', 'Errore: ' + err.message, 'error');
+    }
+  });
+
+  document.getElementById('register-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAuthMsg('reg-msg');
+    try {
+      const res = await register(
+        document.getElementById('reg-username').value,
+        document.getElementById('reg-password').value,
+        document.getElementById('reg-password2').value
+      );
+      if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); return; }
+      showAuthMsg('reg-msg', '✓ Richiesta inviata! Attendi l\'approvazione dell\'admin.', 'success');
+      document.getElementById('register-form').reset();
+    } catch (err) {
+      showAuthMsg('reg-msg', 'Errore: ' + err.message, 'error');
+    }
+  });
+
+  document.getElementById('change-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAuthMsg('change-msg');
+    try {
+      const res = await changeOwnPassword(
+        document.getElementById('change-old').value,
+        document.getElementById('change-new').value,
+        document.getElementById('change-new2').value
+      );
+      if (res.error) { showAuthMsg('change-msg', res.error, 'error'); return; }
+      document.getElementById('change-form').reset();
+      toast('✓ Password cambiata');
+      updateScreens();
+    } catch (err) {
+      showAuthMsg('change-msg', 'Errore: ' + err.message, 'error');
+    }
+  });
+
+  document.getElementById('change-back-link').addEventListener('click', () => {
+    document.getElementById('change-form').reset();
+    clearAuthMsg('change-msg');
+    updateScreens();
+  });
+
+  document.getElementById('password-btn').addEventListener('click', () => {
+    document.getElementById('change-form').reset();
+    clearAuthMsg('change-msg');
+    document.getElementById('change-back-wrap').classList.remove('hidden');
+    document.getElementById('change-subtitle').textContent = 'Cambia la tua password';
+    showScreen('change');
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    if (!confirm('Uscire dall\'account?')) return;
+    clearSession();
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    clearAuthMsg('login-msg');
+    updateScreens();
+  });
+}
+
+function setupAppEvents() {
+  document.getElementById('add-payer').addEventListener('change', e => {
+    const payer = e.target.value;
+    if (!payer) return;
+    const c = document.getElementById('add-beneficiaries');
+    const cb = [...c.querySelectorAll('input')].find(i => i.value === payer);
+    if (cb) cb.checked = true;
+  });
+  document.getElementById('add-submit').addEventListener('click', () => {
+    const date = document.getElementById('add-date').value;
+    const payer = document.getElementById('add-payer').value;
+    const beneficiaries = [...document.querySelectorAll('#add-beneficiaries input:checked')].map(i => i.value);
+    if (!date) return alert('Inserisci una data');
+    if (!payer) return alert('Seleziona chi ha pagato');
+    if (beneficiaries.length === 0) return alert('Seleziona almeno una persona');
+    state.records.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,8), date, payer, beneficiaries });
+    save();
+    document.getElementById('add-payer').value = '';
+    document.getElementById('add-date').value = today();
+    document.querySelectorAll('#add-beneficiaries input').forEach(i => i.checked = false);
+    toast('✓ Registrato');
+    renderRecords(); renderStats(); renderBalance();
+  });
+
+  ['list-from','list-to'].forEach(id => document.getElementById(id).addEventListener('change', renderRecords));
+  ['stats-from','stats-to'].forEach(id => document.getElementById(id).addEventListener('change', renderStats));
+  ['balance-from','balance-to','balance-a','balance-b'].forEach(id => document.getElementById(id).addEventListener('change', renderBalance));
+
+  document.querySelectorAll('[data-quick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const now = new Date();
+      const to = today();
+      let from = '';
+      if (btn.dataset.quick === 'week') {
+        const d = new Date(now); d.setDate(d.getDate()-7);
+        from = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      } else if (btn.dataset.quick === 'month') {
+        from = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
+      }
+      document.getElementById('list-from').value = from;
+      document.getElementById('list-to').value = to;
+      renderRecords();
+    });
+  });
+
+  document.getElementById('add-person-btn').addEventListener('click', () => {
+    const input = document.getElementById('new-person');
+    const name = input.value.trim();
+    if (!name) return;
+    if (state.people.includes(name)) return alert('Nome già esistente');
+    state.people.push(name);
+    input.value = '';
+    save(); renderAll(); toast('Persona aggiunta');
+  });
+  document.getElementById('new-person').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('add-person-btn').click();
+  });
+
+  document.getElementById('export-btn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'caffe-'+today()+'.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Esportato');
+  });
+  document.getElementById('import-btn').addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+  document.getElementById('import-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data.people) || !Array.isArray(data.records) || !Array.isArray(data.users)) {
+          throw new Error('Formato non valido');
+        }
+        if (!confirm('Sovrascrivere i dati attuali (inclusi utenti)?')) return;
+        state = data;
+        save(); renderAll(); toast('Importato');
+      } catch (err) { alert('Errore: ' + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (!confirm('Cancellare TUTTI i dati (inclusi utenti)?')) return;
+    if (!confirm('Sei sicuro? Verrai disconnesso.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    clearSession();
+    location.reload();
+  });
+}
+
+async function init() {
+  try {
+    load();
+    await bootstrapAdmin();
+    document.getElementById('add-date').value = today();
+    setupNav();
+    setupAuthEvents();
+    setupAppEvents();
+    updateScreens();
+    console.log('[ContaCaffè] Init completato.');
+  } catch (e) {
+    console.error('[ContaCaffè] Init FALLITO:', e);
+    const msg = document.getElementById('login-msg');
+    if (msg) {
+      msg.textContent = 'Errore inizializzazione: ' + e.message + ' — apri la console (F12) per dettagli.';
+      msg.className = 'auth-msg show error';
+    }
+  }
+}
+init();
+</script>
+
+</body>
+</html>
