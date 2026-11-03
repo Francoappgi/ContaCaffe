@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#6f4e37">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <title>☕ ContaCaffè</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236f4e37'/%3E%3Cpath d='M148 215 h216 v110 a80 80 0 0 1 -80 80 h-56 a80 80 0 0 1 -80 -80 z' fill='%23fdfbf8'/%3E%3Cellipse cx='256' cy='215' rx='108' ry='14' fill='%236f4e37'/%3E%3C/svg%3E">
 <style>
@@ -265,7 +263,7 @@ const ADMIN_EMAIL = 'franco@contacaffe.local';
 
 let state = { currentUser: null, people: [], records: [], users: [] };
 let unsubUsers = null, unsubRecords = null, unsubPeople = null;
-let isRegistering = false; // FONDAMENTALE: traccia se ci stiamo registrando
+let isRegistering = false; 
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -493,17 +491,18 @@ function setupAppEvents() {
     });
   });
 
+  // AGGIUNTA PERSONA: usiamo un sistema che non si blocca mai
   document.getElementById('add-person-btn').addEventListener('click', async () => {
     const input = document.getElementById('new-person'); const name = input.value.trim(); if (!name) return; if (state.people.includes(name)) return alert('Esiste già');
     
     setLoading(true);
     try {
-        // Usiamo un ID basato sul nome per evitare conflitti se clicchi due volte
+        // Usiamo un ID basato sul nome per evitare conflitti
         const docId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
         await setDoc(doc(db, 'people', docId), { name: name });
         input.value = ''; toast('✓ Aggiunto');
     } catch(e) {
-        alert("Errore aggiunta: " + e.message);
+        alert("Errore: " + e.message);
     }
     setLoading(false);
   });
@@ -522,8 +521,7 @@ async function handleLogout() {
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // Se stiamo attivamente registrando un nuovo utente, non facciamo nulla
-    // aspettiamo che la funzione handleRegister finisca e faccia il signOut da sola
+    // Se stiamo attivamente registrando un nuovo utente, aspettiamo che finisca
     if (isRegistering) return;
 
     showScreen('app'); 
@@ -571,7 +569,7 @@ onAuthStateChanged(auth, async (user) => {
       showScreen('app');
     }
   } else {
-    // Se l'utente è nullo (disconnesso) E non stiamo registrando, mostra il login
+    // Se l'utente è nullo e non stiamo registrando, mostriamo il login
     if (!isRegistering) {
         state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
     }
