@@ -2,264 +2,289 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#6f4e37">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>☕ ContaCaffè</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236f4e37'/%3E%3Cpath d='M148 215 h216 v110 a80 80 0 0 1 -80 80 h-56 a80 80 0 0 1 -80 -80 z' fill='%23fdfbf8'/%3E%3Cellipse cx='256' cy='215' rx='108' ry='14' fill='%236f4e37'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContaCaffè</title>
 <style>
-/* ... (CSS identico a prima) ... */
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#faf6f0;color:#2b1d10;padding-bottom:80px}
-.screen{display:none}.screen.active{display:block}
-#screen-login.active,#screen-register.active,#screen-change.active{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#6f4e37,#3d2a1c)}
-.auth-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,0.3)}
-.auth-card h1{text-align:center;margin:0 0 8px;font-size:24px;color:#6f4e37}
-.auth-card h2{text-align:center;margin:0 0 20px;font-size:14px;color:#8a7562;font-weight:400}
-.auth-card form{display:flex;flex-direction:column;gap:12px}
-.auth-card input{padding:14px;border:1px solid #e0d5c7;border-radius:8px;font-size:15px;background:#fdfbf8;font-family:inherit}
-.auth-card button[type=submit]{padding:14px;background:#6f4e37;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
-.auth-link{text-align:center;margin:16px 0 0;font-size:13px;color:#8a7562}
-.auth-link a{color:#6f4e37;text-decoration:none;font-weight:600;cursor:pointer}
-.auth-msg{padding:10px;border-radius:8px;font-size:13px;display:none;margin-bottom:8px;line-height:1.4}
-.auth-msg.error{background:#fde8e8;color:#c0392b}
-.auth-msg.success{background:#e8f5e9;color:#27ae60}
-.auth-msg.show{display:block}
-header{background:linear-gradient(135deg,#6f4e37,#4a3423);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;justify-content:space-between;align-items:center}
-header h1{margin:0;font-size:18px}
-.user-bar{display:flex;align-items:center;gap:8px;font-size:13px}
-#current-user{opacity:.95; font-weight:500;}
-#password-btn,#logout-btn{background:rgba(255,255,255,0.2);color:#fff;border:none;padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid #e0d5c7;z-index:10;box-shadow:0 -2px 8px rgba(0,0,0,0.05)}
-nav button{flex:1;padding:10px 4px;background:none;border:none;font-size:10px;color:#8a7562;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit}
-nav button .icon{font-size:20px}
-nav button.active{color:#6f4e37;font-weight:600}
-main{padding:16px;max-width:600px;margin:0 auto}
-main section{display:none}
-main section.active{display:block}
-.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#6f4e37}
-input,select{width:100%;padding:12px;border:1px solid #e0d5c7;border-radius:8px;font-size:15px;background:#fdfbf8;font-family:inherit;color:#2b1d10}
-.field{margin-bottom:14px}
-.checkbox-group{display:flex;flex-direction:column;gap:8px}
-.checkbox-item{display:flex;align-items:center;gap:10px;padding:12px;background:#fdfbf8;border:1px solid #e0d5c7;border-radius:8px;cursor:pointer}
-.checkbox-item input{width:20px;height:20px;margin:0;accent-color:#6f4e37}
-.checkbox-item span{font-size:15px}
-.btn{width:100%;padding:14px;background:#6f4e37;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
-.btn-secondary{background:#a89080}
-.btn-danger{background:#c0392b}
-.btn-small{width:auto;padding:6px 10px;font-size:12px;border-radius:6px}
-.record{display:flex;justify-content:space-between;align-items:flex-start;padding:12px;background:#fdfbf8;border:1px solid #e0d5c7;border-radius:8px;margin-bottom:8px;gap:8px}
-.record .info{flex:1;min-width:0}
-.record .date{font-size:11px;color:#8a7562}
-.record .payer{font-weight:600;margin:2px 0;font-size:14px}
-.record .beneficiaries{font-size:13px;color:#666;word-break:break-word}
-.record .delete{background:none;border:none;color:#c0392b;font-size:18px;cursor:pointer;padding:4px 8px;line-height:1}
-.stats-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8dd;font-size:14px;gap:8px}
-.stats-row:last-child{border-bottom:none}
-.stats-row .name{font-weight:600}
-.stats-row .val{color:#6f4e37;font-weight:600;white-space:nowrap}
-.stat-card{background:#fdfbf8;border:1px solid #e0d5c7;border-radius:8px;padding:12px;margin-bottom:8px}
-.stat-card .stat-name{font-weight:600;font-size:15px;margin-bottom:8px;color:#4a3423}
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
-.stat-grid>div{display:flex;flex-direction:column;gap:2px}
-.stat-grid span{font-size:10px;color:#8a7562;text-transform:uppercase;letter-spacing:.5px}
-.stat-grid b{font-size:16px;color:#2b1d10}
-.positive{color:#27ae60;font-weight:600}.negative{color:#c0392b;font-weight:600}.zero{color:#8a7562}
-.empty{text-align:center;color:#8a7562;padding:32px 16px;font-size:14px}
-.filters{display:flex;gap:8px;margin-bottom:12px}
-.filters .field{flex:1;margin:0}
-.quick-filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-h2{font-size:16px;margin:0 0 12px;color:#4a3423}
-h3{font-size:14px;margin:16px 0 8px;color:#6f4e37}
-h3:first-child{margin-top:0}
-.pair-select{display:flex;gap:8px;margin-bottom:12px}
-.pair-select .field{flex:1;margin:0}
-.pair-result{text-align:center;padding:16px;background:#f0e8dd;border-radius:12px;font-size:14px}
-.pair-result .big{font-size:20px;margin:10px 0;font-weight:600}
-.pair-result .row{margin:4px 0;color:#4a3423}
-.people-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-.person-chip{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f0e8dd;border-radius:20px;font-size:14px}
-.person-chip button{background:none;border:none;color:#c0392b;font-size:16px;cursor:pointer;padding:0;width:18px;height:18px;line-height:1;font-weight:700}
-.add-person{display:flex;gap:8px}
-.add-person input{flex:1}
-.add-person button{width:auto;padding:12px 20px}
-.hint{font-size:12px;color:#8a7562;line-height:1.5;margin-top:8px}
-.user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8dd;gap:8px;flex-wrap:wrap}
-.user-row:last-child{border-bottom:none}
-.user-row .user-name{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
-.user-row .user-actions{display:flex;gap:6px;flex-wrap:wrap}
-.badge{font-size:10px;padding:2px 6px;border-radius:10px;font-weight:normal;}
-.badge.reg{background:#e8f5e9;color:#27ae60}
-.badge.nonreg{background:#fff3e0;color:#e67e22}
-.hidden{display:none!important}
-#loading-overlay{position:fixed;inset:0;background:rgba(250,246,240,0.8);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:999}
-#loading-overlay.active{display:flex}
-.spinner{width:40px;height:40px;border:4px solid #e0d5c7;border-top-color:#6f4e37;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+  :root {
+    --bg: #f5f0eb;
+    --card: #ffffff;
+    --primary: #6b4c2a;
+    --primary-light: #8b6240;
+    --accent: #c8956c;
+    --text: #2d1f0e;
+    --text2: #7a6050;
+    --border: #e0d5c8;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --warn: #e67e22;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── AUTH ── */
+  #screen-auth { align-items: center; justify-content: center; padding: 20px; }
+  .auth-box { background: var(--card); border-radius: var(--radius); padding: 32px 28px; width: 100%; max-width: 380px; box-shadow: var(--shadow); }
+  .auth-box h1 { font-size: 22px; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .auth-box .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+  .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+  .auth-tab { flex: 1; background: none; border: none; padding: 10px; font-size: 14px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+  .auth-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .auth-panel { display: none; }
+  .auth-panel.active { display: block; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+  .field input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 15px; color: var(--text); background: var(--bg); transition: border-color .2s; }
+  .field input:focus { outline: none; border-color: var(--primary); }
+  .btn-full { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .2s; }
+  .btn-full:hover { background: var(--primary-light); }
+  .btn-full:disabled { opacity: .5; cursor: not-allowed; }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 13px; display: none; }
+  .msg.error { background: #fde8e8; color: var(--danger); display: block; }
+  .msg.success { background: #e8f8ef; color: var(--success); display: block; }
+  .msg.info { background: #fff3e0; color: var(--warn); display: block; }
+
+  /* ── APP ── */
+  #screen-app { background: var(--bg); }
+  .topbar { background: var(--primary); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .topbar-user { font-size: 13px; opacity: .85; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .icon-btn { background: none; border: none; color: #fff; cursor: pointer; font-size: 18px; opacity: .8; padding: 4px; }
+  .icon-btn:hover { opacity: 1; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav { background: var(--card); border-top: 1px solid var(--border); display: flex; position: sticky; bottom: 0; z-index: 10; }
+  .nav-btn { flex: 1; background: none; border: none; padding: 10px 4px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text2); font-size: 10px; transition: color .2s; }
+  .nav-btn .nav-icon { font-size: 20px; }
+  .nav-btn.active { color: var(--primary); }
+
+  /* ── CONTENT ── */
+  .tab-content { display: none; flex: 1; overflow-y: auto; padding: 16px; }
+  .tab-content.active { display: block; }
+
+  /* ── CARDS ── */
+  .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .card h2 { font-size: 16px; color: var(--primary); margin-bottom: 12px; }
+  .card h3 { font-size: 14px; color: var(--text); margin-bottom: 8px; font-weight: 600; }
+
+  /* ── CAFFE TAB ── */
+  .payer-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+  .payer-row select, .payer-row input[type=date] { flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); }
+  .beneficiaries-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .bene-check { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: var(--bg); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1.5px solid transparent; transition: all .15s; }
+  .bene-check.checked { background: #f0e8de; border-color: var(--accent); }
+  .bene-check input { display: none; }
+  .btn-add { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
+  .btn-add:disabled { opacity: .4; }
+
+  /* ── RECORDS ── */
+  .record-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .record-item:last-child { border-bottom: none; }
+  .record-date { color: var(--text2); font-size: 12px; min-width: 70px; }
+  .record-payer { font-weight: 600; }
+  .record-bene { color: var(--text2); font-size: 12px; flex: 1; }
+  .btn-del { background: none; border: none; color: var(--border); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+  .btn-del:hover { color: var(--danger); }
+
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { background: var(--bg); border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-name { font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-sub { font-size: 11px; color: var(--text2); }
+
+  /* ── SALDI ── */
+  .balance-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .balance-row:last-child { border-bottom: none; }
+  .balance-name { font-weight: 600; }
+  .balance-val { font-size: 18px; font-weight: 700; }
+  .pos { color: var(--success); }
+  .neg { color: var(--danger); }
+  .zero { color: var(--text2); }
+  .price-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .price-row input { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); }
+  .price-row button { padding: 8px 14px; background: var(--primary); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+
+  /* ── UTENTI ── */
+  .user-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .user-row:last-child { border-bottom: none; }
+  .user-name { flex: 1; font-weight: 500; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-active { background: #e8f8ef; color: var(--success); }
+  .badge-pending { background: #fff3e0; color: var(--warn); }
+  .badge-admin { background: #e8e0f8; color: #6b3fa0; }
+  .badge-suspended { background: #fde8e8; color: var(--danger); }
+  .user-actions { display: flex; gap: 6px; }
+  .btn-sm { padding: 5px 10px; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
+  .btn-approve { background: #e8f8ef; color: var(--success); }
+  .btn-suspend { background: #fff3e0; color: var(--warn); }
+  .btn-activate { background: #e8f8ef; color: var(--success); }
+  .btn-reset { background: #f0e8de; color: var(--primary); }
+  .add-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-row input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); }
+  .add-row .btn-plus { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 18px; cursor: pointer; }
+  .hint { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .empty { color: var(--text2); font-size: 14px; text-align: center; padding: 20px 0; }
+
+  /* ── LOADING ── */
+  #loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,.7); display: none; align-items: center; justify-content: center; z-index: 999; }
+  #loading-overlay.active { display: flex; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  #toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 1000; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── CHANGE PW ── */
+  #screen-change { align-items: center; justify-content: center; padding: 20px; }
+  .change-box { background: var(--card); border-radius: var(--radius); padding: 32px 28px; width: 100%; max-width: 380px; box-shadow: var(--shadow); }
+  .change-box h2 { color: var(--primary); margin-bottom: 8px; }
+  .change-box p { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+  /* ── SECTION HEADER ── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-header h2 { font-size: 16px; color: var(--primary); }
 </style>
 </head>
 <body>
 
-<div id="loading-overlay"><div class="spinner"></div><div style="color:#6f4e37;font-size:14px">Attendi...</div></div>
+<div id="loading-overlay"><div class="spinner"></div></div>
+<div id="toast"></div>
 
-<div id="screen-login" class="screen active">
-  <div class="auth-card">
+<!-- AUTH -->
+<div id="screen-auth" class="screen active">
+  <div class="auth-box">
     <h1>☕ ContaCaffè</h1>
-    <h2>Accedi per continuare</h2>
-    <div id="login-msg" class="auth-msg"></div>
-    <form id="login-form">
-      <input type="text" id="login-username" placeholder="Nome utente" autocomplete="username" required>
-      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
-      <button type="submit">Accedi</button>
-    </form>
-    <p class="auth-link">Non hai un account? <a id="show-register">Richiedi registrazione</a></p>
-  </div>
-</div>
-
-<div id="screen-register" class="screen">
-  <div class="auth-card">
-    <h1>📝 Registrazione</h1>
-    <h2>La richiesta sarà approvata dall'admin</h2>
-    <div id="reg-msg" class="auth-msg"></div>
-    <form id="register-form">
-      <input type="text" id="reg-username" placeholder="Nome utente" maxlength="30" autocomplete="username" required>
-      <input type="password" id="reg-password" placeholder="Password (min 6 caratteri)" autocomplete="new-password" required>
-      <input type="password" id="reg-password2" placeholder="Conferma password" autocomplete="new-password" required>
-      <button type="submit">Invia richiesta</button>
-    </form>
-    <p class="auth-link"><a id="show-login">← Torna al login</a></p>
-  </div>
-</div>
-
-<div id="screen-change" class="screen">
-  <div class="auth-card">
-    <h1>🔑 Cambio password</h1>
-    <h2 id="change-subtitle">Devi cambiare la password prima di continuare</h2>
-    <div id="change-msg" class="auth-msg"></div>
-    <form id="change-form">
-      <input type="password" id="change-old" placeholder="Password attuale" autocomplete="current-password" required>
-      <input type="password" id="change-new" placeholder="Nuova password (min 6 caratteri)" autocomplete="new-password" required>
-      <input type="password" id="change-new2" placeholder="Conferma nuova password" autocomplete="new-password" required>
-      <button type="submit">Cambia password</button>
-    </form>
-    <p class="auth-link hidden" id="change-back-wrap"><a id="change-back-link">← Annulla e torna all'app</a></p>
-  </div>
-</div>
-
-<div id="screen-app" class="screen">
-  <header>
-    <h1>☕ ContaCaffè</h1>
-    <div class="user-bar">
-      <span id="current-user">...</span>
-      <button id="password-btn" title="Cambia password">🔑</button>
-      <button id="logout-btn">Esci</button>
+    <p class="subtitle">Traccia i caffè del gruppo</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login-btn">Accedi</button>
+      <button class="auth-tab" id="tab-reg-btn">Registrati</button>
     </div>
-  </header>
-  <main>
-    <section id="tab-add" class="active">
-      <div class="card">
-        <h2>Registra un giro di caffè</h2>
-        <div class="field"><label for="add-date">Data</label><input type="date" id="add-date"></div>
-        <div class="field"><label for="add-payer">Chi ha pagato?</label><select id="add-payer"></select></div>
-        <div class="field"><label>Per chi?</label><div id="add-beneficiaries" class="checkbox-group"></div></div>
-        <button class="btn" id="add-submit">✓ Registra</button>
+    <!-- Login -->
+    <div class="auth-panel active" id="panel-login">
+      <div class="field"><label>Nome</label><input type="text" id="login-user" autocomplete="username"></div>
+      <div class="field"><label>Password</label><input type="password" id="login-pw" autocomplete="current-password"></div>
+      <button class="btn-full" id="btn-login">Accedi</button>
+      <div class="msg" id="login-msg"></div>
+    </div>
+    <!-- Register -->
+    <div class="auth-panel" id="panel-reg">
+      <div class="field"><label>Nome (come vuoi apparire)</label><input type="text" id="reg-user" autocomplete="username"></div>
+      <div class="field"><label>Password</label><input type="password" id="reg-pw" autocomplete="new-password"></div>
+      <div class="field"><label>Conferma password</label><input type="password" id="reg-pw2" autocomplete="new-password"></div>
+      <button class="btn-full" id="btn-reg">Invia richiesta</button>
+      <div class="msg" id="reg-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD -->
+<div id="screen-change" class="screen">
+  <div class="change-box">
+    <h2>🔑 Cambio password</h2>
+    <p id="change-subtitle">L'admin ha resettato la tua password. Scegline una nuova.</p>
+    <div class="field"><label>Password attuale</label><input type="password" id="ch-old"></div>
+    <div class="field"><label>Nuova password</label><input type="password" id="ch-new"></div>
+    <div class="field"><label>Conferma</label><input type="password" id="ch-new2"></div>
+    <button class="btn-full" id="btn-change-pw">Salva nuova password</button>
+    <div class="msg" id="change-msg"></div>
+    <div id="change-back-wrap" style="text-align:center;margin-top:12px;display:none">
+      <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px" id="btn-change-back">← Torna all'app</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app" class="screen">
+  <div class="topbar">
+    <div class="topbar-title">☕ ContaCaffè</div>
+    <div class="topbar-actions">
+      <span class="topbar-user" id="topbar-user"></span>
+      <button class="icon-btn" id="btn-pw-change" title="Cambia password">🔑</button>
+      <button class="icon-btn" id="btn-logout" title="Esci">⎋</button>
+    </div>
+  </div>
+
+  <!-- TAB CAFFE -->
+  <div class="tab-content active" id="tab-caffe">
+    <div class="card" id="card-add">
+      <h2>Nuovo caffè</h2>
+      <div class="payer-row">
+        <select id="sel-payer"><option value="">Chi paga?</option></select>
+        <input type="date" id="inp-date">
       </div>
-    </section>
-    <section id="tab-list">
-      <div class="card">
+      <div id="bene-grid" class="beneficiaries-grid"></div>
+      <button class="btn-add" id="btn-add-record">Registra ☕</button>
+    </div>
+    <div class="card">
+      <div class="section-header">
         <h2>Storico</h2>
-        <div class="filters">
-          <div class="field"><label for="list-from">Dal</label><input type="date" id="list-from"></div>
-          <div class="field"><label for="list-to">Al</label><input type="date" id="list-to"></div>
-        </div>
-        <div class="quick-filters">
-          <button class="btn btn-secondary btn-small" data-quick="all">Tutto</button>
-          <button class="btn btn-secondary btn-small" data-quick="week">Ultimi 7gg</button>
-          <button class="btn btn-secondary btn-small" data-quick="month">Mese corrente</button>
-        </div>
-        <div id="list-records"></div>
+        <span id="records-count" style="font-size:12px;color:var(--text2)"></span>
       </div>
-    </section>
-    <section id="tab-stats">
-      <div class="card">
-        <h2>Periodo</h2>
-        <div class="filters">
-          <div class="field"><label for="stats-from">Dal</label><input type="date" id="stats-from"></div>
-          <div class="field"><label for="stats-to">Al</label><input type="date" id="stats-to"></div>
-        </div>
+      <div id="records-list"><div class="empty">Nessun caffè registrato</div></div>
+    </div>
+  </div>
+
+  <!-- TAB STATISTICHE -->
+  <div class="tab-content" id="tab-stats">
+    <div class="card">
+      <h2>Statistiche</h2>
+      <div id="stats-grid" class="stats-grid"></div>
+    </div>
+  </div>
+
+  <!-- TAB SALDI -->
+  <div class="tab-content" id="tab-saldi">
+    <div class="card">
+      <h2>Saldi</h2>
+      <div class="price-row">
+        <input type="number" id="inp-price" placeholder="Prezzo caffè (€)" step="0.05" min="0">
+        <button id="btn-set-price">Imposta</button>
       </div>
-      <div class="card">
-        <h2>Statistiche per persona</h2>
-        <div id="stats-people"></div>
-        <div class="hint"><b>Pagati</b> = totale · <b>Offerti</b> = ad altri · <b>Ricevuti</b> = da altri · <b>Saldo</b> = Offerti − Ricevuti</div>
+      <div id="saldi-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB UTENTI (admin only) -->
+  <div class="tab-content" id="tab-utenti" style="display:none">
+    <div class="card" id="card-richieste">
+      <h2>Richieste in attesa</h2>
+      <div id="list-pending"><div class="empty">Nessuna richiesta</div></div>
+    </div>
+    <div class="card">
+      <h2>Tutti gli utenti</h2>
+      <div id="list-users"><div class="empty">Nessun utente</div></div>
+    </div>
+    <div class="card">
+      <h2>Crea utente direttamente</h2>
+      <p class="hint" style="margin-bottom:12px">Crea un account senza passare dalla registrazione.</p>
+      <div class="add-row">
+        <input type="text" id="inp-new-user" placeholder="Nome">
+        <input type="password" id="inp-new-pw" placeholder="Password temporanea">
+        <button class="btn-plus" id="btn-create-user">+</button>
       </div>
-      <div class="card"><h2>Pagamenti tra coppie</h2><div id="stats-pairs"></div></div>
-    </section>
-    <section id="tab-balance">
-      <div class="card">
-        <h2>Periodo</h2>
-        <div class="filters">
-          <div class="field"><label for="balance-from">Dal</label><input type="date" id="balance-from"></div>
-          <div class="field"><label for="balance-to">Al</label><input type="date" id="balance-to"></div>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Saldo tra due persone</h2>
-        <div class="pair-select">
-          <div class="field"><label for="balance-a">Persona A</label><select id="balance-a"></select></div>
-          <div class="field"><label for="balance-b">Persona B</label><select id="balance-b"></select></div>
-        </div>
-        <div id="balance-result" class="pair-result"></div>
-      </div>
-      <div class="card"><h2>Bilancio complessivo</h2><div id="balance-overall"></div></div>
-      <div class="card"><h2>Pareggio suggerito</h2><div id="balance-suggest"></div></div>
-    </section>
-    <section id="tab-users" class="admin-only-section">
-      <div class="card">
-        <h2>Gestione utenti</h2>
-        <div id="users-content"></div>
-        <h3 style="margin-top:20px">Aggiungi utente (Account reale)</h3>
-        <div class="add-person">
-          <input type="text" id="admin-new-username" placeholder="Nome utente">
-          <input type="text" id="admin-new-password" placeholder="Password temporanea">
-          <button class="btn" id="admin-create-user">+</button>
-        </div>
-        <div id="admin-new-msg" style="margin-top:8px;font-size:13px"></div>
-        <h3 style="margin-top:20px">Aggiungi nominativo (Solo per i caffè)</h3>
-        <p class="hint" style="margin:0 0 10px">Aggiungi un nome che non ha un account.</p>
-        <div class="add-person">
-          <input type="text" id="new-person" placeholder="Nuovo nome" maxlength="30">
-          <button class="btn" id="add-person-btn">+</button>
-        </div>
-      </div>
-    </section>
-    <section id="tab-settings" class="admin-only-section">
-      <div class="card">
-        <h2>Backup (Admin)</h2>
-        <p class="hint" style="margin:0 0 10px">I dati sono sul cloud Firebase. Esporta per backup.</p>
-        <button class="btn btn-secondary" id="export-btn" style="margin-bottom:8px">⬇ Esporta dati</button>
-      </div>
-      <div class="card">
-        <h2>Zona pericolosa</h2>
-        <button class="btn btn-danger" id="reset-btn">🗑 Cancella tutti i dati</button>
-      </div>
-    </section>
-  </main>
-  <nav>
-    <button data-tab="add" class="active"><span class="icon">➕</span>Nuovo</button>
-    <button data-tab="list"><span class="icon">📋</span>Storico</button>
-    <button data-tab="stats"><span class="icon">📊</span>Statistiche</button>
-    <button data-tab="balance"><span class="icon">⚖️</span>Saldi</button>
-    <button data-tab="users" class="admin-only-section"><span class="icon">👥</span>Utenti</button>
-    <button data-tab="settings" class="admin-only-section"><span class="icon">⚙️</span>Impost.</button>
+      <div class="msg" id="create-user-msg" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="caffe"><span class="nav-icon">☕</span>Caffè</button>
+    <button class="nav-btn" data-tab="stats"><span class="nav-icon">📊</span>Statistiche</button>
+    <button class="nav-btn" data-tab="saldi"><span class="nav-icon">⚖️</span>Saldi</button>
+    <button class="nav-btn admin-only" data-tab="utenti" style="display:none"><span class="nav-icon">👥</span>Utenti</button>
   </nav>
 </div>
 
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -271,466 +296,591 @@ const firebaseConfig = {
   appId: "1:815150560382:web:2a5125a317aa1a3febd42f"
 };
 
+const ADMIN_NAME = 'Franco';
+const ADMIN_EMAIL = 'franco@contacaffe.local';
+const ADMIN_PW = '123456';
+const MIN_PW = 6;
+const toEmail = n => n.toLowerCase().replace(/\s+/g,'_') + '@contacaffe.local';
+const today = () => new Date().toISOString().slice(0,10);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const DEFAULT_PEOPLE = ['Franco','Salvatore','Michelangelo','Maurizio','Eleonora'];
-const MIN_PW_LEN = 6;
-const ADMIN_EMAIL = 'franco@contacaffe.local';
-const LOCAL_PEOPLE_KEY = 'caffe_local_people';
-const LOCAL_PEOPLE_DISABLED_KEY = 'caffe_local_people_disabled';
+let state = {
+  user: null,       // { uid, name, role, status, mustChangePw }
+  users: [],        // tutti gli utenti da Firestore
+  records: [],      // tutti i record
+  coffeePrice: parseFloat(localStorage.getItem('caffe_price') || '0') || 0,
+};
+let unsub = [];
 
-let state = { currentUser: null, people: [], records: [], users: [], localPeople: [], localPeopleDisabled: [] };
-let unsubUsers = null, unsubRecords = null;
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+function setLoading(v) {
+  document.getElementById('loading-overlay').classList.toggle('active', v);
+}
+function toast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || 'var(--text)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function showMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'msg ' + type;
+}
+function clearMsg(id) {
+  const el = document.getElementById(id);
+  el.className = 'msg';
+  el.textContent = '';
+}
+function isAdmin() { return state.user && state.user.role === 'admin'; }
 
-function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function fmtDate(s) { const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; }
-function filterByDate(records, from, to) { return records.filter(r => (!from || r.date >= from) && (!to || r.date <= to)); }
-function toast(msg, color) { const t = document.createElement('div'); t.textContent = msg; t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+(color||'#27ae60')+';color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2);pointer-events:none;'; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
-function showScreen(name) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-' + name).classList.add('active'); }
-function showAuthMsg(elId, msg, type) { const el = document.getElementById(elId); el.textContent = msg; el.className = 'auth-msg show ' + (type || 'error'); }
-function clearAuthMsg(elId) { const el = document.getElementById(elId); el.className = 'auth-msg'; el.textContent = ''; }
-function usernameToEmail(username) { return username.toLowerCase().replace(/[^a-z0-9]/g, '') + '@contacaffe.local'; }
-function isAdmin() { return state.currentUser && state.currentUser.role === 'admin'; }
-
-function setLoading(active) {
-  const overlay = document.getElementById('loading-overlay');
-  if (active) overlay.classList.add('active'); else overlay.classList.remove('active');
+// ── INIT ADMIN ─────────────────────────────────────────────────────────────
+async function ensureAdmin() {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    if (snap.docs.some(d => d.data().role === 'admin')) return;
+    // Crea admin
+    const tmp = initializeApp(firebaseConfig, 'Init_' + Date.now());
+    const tmpAuth = getAuth(tmp);
+    try {
+      const cred = await createUserWithEmailAndPassword(tmpAuth, ADMIN_EMAIL, ADMIN_PW);
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        name: ADMIN_NAME, email: ADMIN_EMAIL, role: 'admin',
+        status: 'active', mustChangePw: false, createdAt: serverTimestamp()
+      });
+      await signOut(tmpAuth);
+    } finally { await deleteApp(tmp).catch(()=>{}); }
+  } catch(e) { console.warn('ensureAdmin:', e.message); }
 }
 
-function caricaPersoneLocali() {
-    const local = localStorage.getItem(LOCAL_PEOPLE_KEY);
-    if (local) state.localPeople = JSON.parse(local);
-    else state.localPeople = [];
-    const disabled = localStorage.getItem(LOCAL_PEOPLE_DISABLED_KEY);
-    if (disabled) state.localPeopleDisabled = JSON.parse(disabled);
-    else state.localPeopleDisabled = [];
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+async function doLogin(name, pw) {
+  if (!name) return { error: 'Inserisci il nome' };
+  if (!pw) return { error: 'Inserisci la password' };
+  try {
+    await signInWithEmailAndPassword(auth, toEmail(name), pw);
+    return { ok: true };
+  } catch(e) {
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found')
+      return { error: 'Nome o password errati' };
+    return { error: e.message };
+  }
 }
 
-function aggiornaListaPersone() {
-    const fromUsers = state.users.filter(u => u.status === 'active').map(u => u.username);
-    const localAttivi = state.localPeople.filter(p => !state.localPeopleDisabled.includes(p));
-    state.people = [...new Set([...DEFAULT_PEOPLE, ...localAttivi, ...fromUsers])];
-    renderPayerSelect(); renderBeneficiaries(); renderBalanceSelects(); renderRecords(); renderStats(); renderBalance();
+// ── REGISTER ──────────────────────────────────────────────────────────────
+async function doRegister(name, pw, pw2) {
+  name = name.trim();
+  if (name.length < 2) return { error: 'Nome troppo corto (min 2 caratteri)' };
+  if (pw.length < MIN_PW) return { error: `Password min ${MIN_PW} caratteri` };
+  if (pw !== pw2) return { error: 'Le password non coincidono' };
+
+  // Controlla nome duplicato
+  const snap = await getDocs(collection(db, 'users'));
+  if (snap.docs.some(d => (d.data().name||'').toLowerCase() === name.toLowerCase()))
+    return { error: 'Nome già in uso' };
+
+  const tmp = initializeApp(firebaseConfig, 'Reg_' + Date.now());
+  const tmpAuth = getAuth(tmp);
+  try {
+    const cred = await createUserWithEmailAndPassword(tmpAuth, toEmail(name), pw);
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      name, email: toEmail(name), role: 'user',
+      status: 'pending', mustChangePw: false, createdAt: serverTimestamp()
+    });
+    await signOut(tmpAuth);
+    return { ok: true };
+  } catch(e) {
+    if (e.code === 'auth/email-already-in-use') return { error: 'Questo nome ha già una richiesta in attesa.' };
+    return { error: e.message };
+  } finally {
+    await deleteApp(tmp).catch(()=>{});
+  }
 }
 
+// ── CHANGE PASSWORD ────────────────────────────────────────────────────────
+async function doChangePw(oldPw, newPw, newPw2) {
+  if (newPw.length < MIN_PW) return { error: `Password min ${MIN_PW} caratteri` };
+  if (newPw !== newPw2) return { error: 'Le password non coincidono' };
+  try {
+    const user = auth.currentUser;
+    const cred = EmailAuthProvider.credential(user.email, oldPw);
+    await reauthenticateWithCredential(user, cred);
+    await updatePassword(user, newPw);
+    await setDoc(doc(db, 'users', user.uid), { mustChangePw: false }, { merge: true });
+    return { ok: true };
+  } catch(e) {
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
+      return { error: 'Password attuale errata' };
+    return { error: e.message };
+  }
+}
+
+// ── ADMIN: CREA UTENTE ─────────────────────────────────────────────────────
+async function adminCreateUser(name, pw) {
+  name = name.trim();
+  if (name.length < 2) throw new Error('Nome troppo corto');
+  if (pw.length < MIN_PW) throw new Error(`Password min ${MIN_PW} caratteri`);
+  if (state.users.some(u => u.name.toLowerCase() === name.toLowerCase()))
+    throw new Error('Nome già esistente');
+
+  const tmp = initializeApp(firebaseConfig, 'AdminCreate_' + Date.now());
+  const tmpAuth = getAuth(tmp);
+  try {
+    const cred = await createUserWithEmailAndPassword(tmpAuth, toEmail(name), pw);
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      name, email: toEmail(name), role: 'user',
+      status: 'active', mustChangePw: true, createdAt: serverTimestamp()
+    });
+    await signOut(tmpAuth);
+  } catch(e) {
+    if (e.code === 'auth/email-already-in-use') throw new Error('Nome già registrato');
+    throw e;
+  } finally {
+    await deleteApp(tmp).catch(()=>{});
+  }
+}
+
+// ── ADMIN: APPROVE / SUSPEND / ACTIVATE ───────────────────────────────────
+async function setUserStatus(uid, status) {
+  await setDoc(doc(db, 'users', uid), { status }, { merge: true });
+}
+async function adminResetPw(uid, tmpPw) {
+  if (tmpPw.length < MIN_PW) throw new Error(`Password min ${MIN_PW} caratteri`);
+  await setDoc(doc(db, 'users', uid), { mustChangePw: true, _tempPw: tmpPw }, { merge: true });
+}
+
+// ── RECORDS ───────────────────────────────────────────────────────────────
+async function addRecord(payer, benes, date) {
+  await addDoc(collection(db, 'records'), {
+    payer, beneficiaries: benes, date,
+    createdAt: serverTimestamp()
+  });
+}
+async function deleteRecord(id) {
+  await deleteDoc(doc(db, 'records', id));
+}
+
+// ── LISTENERS ─────────────────────────────────────────────────────────────
 function startListeners() {
   stopListeners();
-  
-  unsubUsers = onSnapshot(collection(db, 'users'), snap => {
-    state.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (state.currentUser) { 
-      const fresh = state.users.find(u => u.username === state.currentUser.username); 
-      if (fresh) { state.currentUser.role = fresh.role; state.currentUser.mustChangePassword = fresh.mustChangePassword; state.currentUser.status = fresh.status; } 
-    }
-    aggiornaListaPersone();
-    renderUsers(); renderCurrentUser();
-    
-    if (state.currentUser && state.currentUser.mustChangePassword) { 
-      showScreen('change'); document.getElementById('change-back-wrap').classList.add('hidden'); 
-    } else if (state.currentUser) { 
-      resetTabsToDefault(); showScreen('app'); renderAll(); 
-    }
-  }, (error) => {
-    console.error("Firestore non raggiungibile, uso modalità offline.", error);
-    // Se Firestore non risponde, forziamo l'uso dei dati locali
-    aggiornaListaPersone();
-    renderUsers(); renderCurrentUser();
-    if (state.currentUser) { resetTabsToDefault(); showScreen('app'); renderAll(); }
-  });
-  
-  unsubRecords = onSnapshot(collection(db, 'records'), snap => { 
-    state.records = snap.docs.map(d => ({ id: d.id, ...d.data() })); 
-    renderRecords(); renderStats(); renderBalance(); 
-  }, (error) => { console.log("Record offline"); });
+  unsub.push(onSnapshot(collection(db, 'users'), snap => {
+    state.users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    renderAll();
+  }, e => console.error('users snap:', e)));
+  unsub.push(onSnapshot(collection(db, 'records'), snap => {
+    state.records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    renderRecords();
+    renderStats();
+    renderSaldi();
+  }, e => console.error('records snap:', e)));
 }
+function stopListeners() { unsub.forEach(u => u()); unsub = []; }
 
-function stopListeners() { 
-  if (unsubUsers) { unsubUsers(); unsubUsers = null; } 
-  if (unsubRecords) { unsubRecords(); unsubRecords = null; } 
-}
-
-async function handleLogin(username, password) {
-  try { 
-    await signInWithEmailAndPassword(auth, usernameToEmail(username), password); 
-    return { ok: true }; 
-  } catch (e) { 
-    if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(e.code)) return { error: 'Credenziali non valide' }; 
-    return { error: 'Errore: ' + e.message }; 
-  }
-}
-
-async function handleRegister(username, password, password2) {
-  username = username.trim();
-  if (!username || username.length < 2) return { error: 'Nome troppo corto' };
-  if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
-  if (password !== password2) return { error: 'Le password non coincidono' };
-  const timeout = ms => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
-  try {
-    const usersSnap = await Promise.race([getDocs(collection(db, 'users')), timeout(10000)]);
-    if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) {
-      return { error: 'Nome utente già in uso' };
-    }
-    // Secondary app: non tocca la sessione principale
-    const regApp = initializeApp(firebaseConfig, 'Reg_' + Date.now());
-    const regAuth = getAuth(regApp);
-    try {
-      const cred = await createUserWithEmailAndPassword(regAuth, usernameToEmail(username), password);
-      await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
-      await signOut(regAuth);
-      return { ok: true };
-    } finally {
-      await deleteApp(regApp).catch(() => {});
-    }
-  } catch (e) {
-    if (e.code === 'auth/email-already-in-use') return { error: 'Questo nome utente ha già inviato una richiesta in passato.' };
-    if (e.message === 'timeout') return { error: 'Connessione lenta o assente. Riprova.' };
-    console.error('handleRegister error:', e);
-    return { error: 'Errore: ' + (e.message || e.code || JSON.stringify(e)) };
-  }
-}
-
-async function handleChangePassword(oldPw, newPw, newPw2) {
-  if (newPw.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
-  if (newPw !== newPw2) return { error: 'Le nuove password non coincidono' };
-  try { 
-    await updatePassword(auth.currentUser, newPw); 
-    await setDoc(doc(db, 'users', auth.currentUser.uid), { mustChangePassword: false }, { merge: true }); 
-    if (state.currentUser) state.currentUser.mustChangePassword = false; 
-    return { ok: true }; 
-  } catch (e) { 
-    if (e.code === 'auth/requires-recent-login') return { error: 'Sessione scaduta. Esci e rientra.' }; 
-    return { error: 'Errore: ' + e.message }; 
-  }
-}
-
-async function approveUser(userId) { await setDoc(doc(db, 'users', userId), { status: 'active' }, { merge: true }); toast('Utente approvato'); }
-async function rejectUser(userId) { if (!confirm('Rifiutare?')) return; await setDoc(doc(db, 'users', userId), { status: 'deactivated' }, { merge: true }); toast('Rifiutato', '#c0392b'); }
-async function setUserStatus(userId, status) { await setDoc(doc(db, 'users', userId), { status }, { merge: true }); toast('Stato aggiornato'); }
-async function adminResetPassword(userId, tempPw) { if (tempPw.length < MIN_PW_LEN) throw new Error('Troppo corta'); await setDoc(doc(db, 'users', userId), { mustChangePassword: true, tempPassword: tempPw }, { merge: true }); toast('Reset richiesto. Chiedi all\'utente di usare questa password.'); }
-async function adminCreateUser(username, tempPw) {
-  username = username.trim();
-  if (!username || username.length < 2) throw new Error('Nome troppo corto');
-  if (!tempPw || tempPw.length < MIN_PW_LEN) throw new Error('Password troppo corta (min ' + MIN_PW_LEN + ')');
-  if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('Nome già esistente');
-  const adminApp = initializeApp(firebaseConfig, 'AdminCreate_' + Date.now());
-  const adminAuth = getAuth(adminApp);
-  try {
-    const cred = await createUserWithEmailAndPassword(adminAuth, usernameToEmail(username), tempPw);
-    await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'active', mustChangePassword: true, createdAt: serverTimestamp() });
-    await signOut(adminAuth);
-    toast('✓ Utente creato');
-  } catch (e) {
-    if (e.code === 'auth/email-already-in-use') throw new Error('Nome utente già registrato su Firebase');
-    console.error('adminCreateUser error:', e);
-    throw new Error(e.message || e.code || 'Errore sconosciuto');
-  } finally {
-    await deleteApp(adminApp).catch(() => {});
-  }
-}
-
-function renderCurrentUser() {
-  if (!state.currentUser) return;
-  // FIX: Aggiorna il nome in alto
-  document.getElementById('current-user').textContent = state.currentUser.username + (state.currentUser.role === 'admin' ? ' (admin)' : '');
-  // FIX: Mostra le sezioni admin
-  document.querySelectorAll('.admin-only-section').forEach(el => el.classList.toggle('hidden', !isAdmin()));
-}
-function resetTabsToDefault() { document.querySelectorAll('#screen-app nav button').forEach((b, i) => b.classList.toggle('active', i === 0)); document.querySelectorAll('#screen-app main section').forEach((s, i) => s.classList.toggle('active', i === 0)); }
-
-function computeStats(records) {
-  const paid = {}, offered = {}, received = {}, flow = {};
-  state.people.forEach(p => { paid[p]=0; offered[p]=0; received[p]=0; flow[p]={}; state.people.forEach(q => flow[p][q]=0); });
-  records.forEach(r => { (r.beneficiaries||[]).forEach(b => { paid[r.payer] = (paid[r.payer]||0) + 1; if (b !== r.payer) { offered[r.payer] = (offered[r.payer]||0) + 1; received[b] = (received[b]||0) + 1; if (!flow[r.payer]) flow[r.payer] = {}; flow[r.payer][b] = (flow[r.payer][b]||0) + 1; } }); });
-  return { paid, offered, received, flow };
-}
-function netBalance(stats) { const net = {}; state.people.forEach(p => { net[p] = (stats.offered[p]||0) - (stats.received[p]||0); }); return net; }
-function suggestSettlements(net) { const c=[], d=[]; Object.keys(net).forEach(p => { if (net[p]>0) c.push({p, v:net[p]}); else if (net[p]<0) d.push({p, v:-net[p]}); }); c.sort((a,b)=>b.v-a.v); d.sort((a,b)=>b.v-a.v); const r=[]; let i=0, j=0; while (i<c.length && j<d.length) { const cc=c[i], dd=d[j], amt=Math.min(cc.v, dd.v); if (amt>0) r.push({from: dd.p, to: cc.p, amount: amt}); cc.v-=amt; dd.v-=amt; if (cc.v===0) i++; if (dd.v===0) j++; } return r; }
-
-function renderPayerSelect() { const sel = document.getElementById('add-payer'); const cur = sel.value; sel.innerHTML = '<option value="">-- Seleziona --</option>' + state.people.map(p => '<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (cur && state.people.includes(cur)) sel.value = cur; }
-function renderBeneficiaries() { const c = document.getElementById('add-beneficiaries'); const checked = new Set([...c.querySelectorAll('input:checked')].map(i=>i.value)); const payer = document.getElementById('add-payer').value; c.innerHTML = state.people.map(p => { const isChecked = checked.has(p) || p === payer; return '<label class="checkbox-item"><input type="checkbox" value="'+esc(p)+'" '+(isChecked?'checked':'')+'><span>'+esc(p)+'</span></label>'; }).join(''); }
-function renderRecords() { const from = document.getElementById('list-from').value; const to = document.getElementById('list-to').value; const f = filterByDate(state.records, from, to).sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0)); const c = document.getElementById('list-records'); if (f.length === 0) { c.innerHTML = '<div class="empty">Nessun record nel periodo</div>'; return; } c.innerHTML = f.map(r => '<div class="record"><div class="info"><div class="date">'+fmtDate(r.date)+'</div><div class="payer">'+esc(r.payer)+' ha pagato '+r.beneficiaries.length+' caffè</div><div class="beneficiaries">per: '+r.beneficiaries.map(esc).join(', ')+'</div></div><button class="delete" data-id="'+esc(String(r.id))+'">✕</button></div>').join(''); c.querySelectorAll('.delete').forEach(btn => { btn.addEventListener('click', async () => { if (!confirm('Eliminare questo record?')) return; await deleteDoc(doc(db, 'records', btn.dataset.id)); }); }); }
-function renderStats() { const from = document.getElementById('stats-from').value; const to = document.getElementById('stats-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const peopleEl = document.getElementById('stats-people'); if (f.length === 0) { peopleEl.innerHTML = '<div class="empty">Nessun dato</div>'; } else { peopleEl.innerHTML = state.people.map(p => { const net = (stats.offered[p]||0) - (stats.received[p]||0); const nc = net>0?'positive':net<0?'negative':'zero'; const nt = net>0?'+'+net:String(net); return '<div class="stat-card"><div class="stat-name">'+esc(p)+'</div><div class="stat-grid"><div><span>Pagati</span><b>'+(stats.paid[p]||0)+'</b></div><div><span>Offerti</span><b>'+(stats.offered[p]||0)+'</b></div><div><span>Ricevuti</span><b>'+(stats.received[p]||0)+'</b></div><div><span>Saldo</span><b class="'+nc+'">'+nt+'</b></div></div></div>'; }).join(''); } const pairsEl = document.getElementById('stats-pairs'); const pairs = []; state.people.forEach(a => state.people.forEach(b => { if (a !== b && (stats.flow[a]?.[b]||0) > 0) pairs.push({a, b, n: stats.flow[a][b]}); })); if (pairs.length === 0) pairsEl.innerHTML = '<div class="empty">Nessun pagamento</div>'; else { pairs.sort((x,y)=>y.n-x.n); pairsEl.innerHTML = pairs.map(x => '<div class="stats-row"><span>'+esc(x.a)+' ha pagato a <b>'+esc(x.b)+'</b></span><span class="val">'+x.n+' caffè</span></div>').join(''); } }
-function renderBalanceSelects() { ['balance-a','balance-b'].forEach(id => { const sel = document.getElementById(id); const cur = sel.value; sel.innerHTML = '<option value="">--</option>' + state.people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join(''); if (state.people.includes(cur)) sel.value = cur; }); }
-function renderBalance() { const from = document.getElementById('balance-from').value; const to = document.getElementById('balance-to').value; const f = filterByDate(state.records, from, to); const stats = computeStats(f); const a = document.getElementById('balance-a').value; const b = document.getElementById('balance-b').value; const resultEl = document.getElementById('balance-result'); if (!a || !b) resultEl.innerHTML = '<span class="zero">Seleziona due persone</span>'; else if (a === b) resultEl.innerHTML = '<span class="zero">Seleziona diverse</span>'; else { const aToB = stats.flow[a]?.[b]||0, bToA = stats.flow[b]?.[a]||0, diff = aToB-bToA; let msg, cls; if (diff === 0) { msg='In pari 🤝'; cls='zero'; } else if (diff > 0) { msg=b+' deve '+diff+' caffè a '+a; cls='positive'; } else { msg=a+' deve '+(-diff)+' caffè a '+b; cls='negative'; } resultEl.innerHTML = '<div class="row">'+esc(a)+' → '+esc(b)+': <b>'+aToB+'</b> caffè</div><div class="row">'+esc(b)+' → '+esc(a)+': <b>'+bToA+'</b> caffè</div><div class="big '+cls+'">'+msg+'</div>'; } const net = netBalance(stats); const overallEl = document.getElementById('balance-overall'); if (f.length === 0) overallEl.innerHTML = '<div class="empty">Nessun dato</div>'; else { overallEl.innerHTML = state.people.map(p => { const v = net[p]; const cls = v>0?'positive':v<0?'negative':'zero'; const txt = v>0?'+'+v:String(v); const desc = v>0?'in credito':v<0?'in debito':'in pari'; return '<div class="stats-row"><span class="name">'+esc(p)+'</span><span class="'+cls+'">'+txt+' <small>('+desc+')</small></span></div>'; }).join(''); } const suggestEl = document.getElementById('balance-suggest'); const settlements = suggestSettlements(net); if (settlements.length === 0) suggestEl.innerHTML = '<div class="empty">Nessun pareggio 🎉</div>'; else suggestEl.innerHTML = settlements.map(s => '<div class="stats-row"><span><b>'+esc(s.from)+'</b> → <b>'+esc(s.to)+'</b></span><span class="val">'+s.amount+' caffè</span></div>').join(''); }
-
-// Gestione unificata di TUTTI (registrati e non)
-function renderUsers() {
-  if (!isAdmin()) return;
-  const container = document.getElementById('users-content');
-  const tuttiINomi = [...new Set([...state.people, ...state.users.map(u => u.username)])];
-
-  let html = '<h3>Tutti i nominativi</h3>';
-  if (tuttiINomi.length === 0) html += '<div class="empty">Nessun nominativo</div>';
-  
-  tuttiINomi.forEach(nome => {
-      const userDoc = state.users.find(u => u.username === nome);
-      const isLocal = state.localPeople.includes(nome) && !userDoc;
-      
-      let statoBadge = '';
-      let azioni = '';
-      
-      if (userDoc) {
-          if (userDoc.role === 'admin') statoBadge = '<span class="badge reg">Admin</span>';
-          else if (userDoc.status === 'active') statoBadge = '<span class="badge reg">Registrato</span>';
-          else if (userDoc.status === 'pending') statoBadge = '<span class="badge nonreg" style="background:#fff3e0;color:#e67e22">In attesa</span>';
-          else statoBadge = '<span class="badge nonreg" style="background:#fde8e8;color:#c0392b">Sospeso</span>';
-          
-          if (userDoc.role !== 'admin') {
-              azioni += `<button class="btn-small btn-secondary" data-action="reset-pw" data-id="${esc(userDoc.id)}">🔑</button>`;
-              if (userDoc.status === 'pending') azioni += `<button class="btn-small btn" data-action="approve" data-id="${esc(userDoc.id)}">✓ Approva</button>`;
-              else if (userDoc.status === 'active') azioni += `<button class="btn-small btn-secondary" data-action="suspend" data-id="${esc(userDoc.id)}">⏸ Sospendi</button>`;
-              else azioni += `<button class="btn-small btn" data-action="activate" data-id="${esc(userDoc.id)}">▶ Riattiva</button>`;
-          }
-      } else if (isLocal) {
-          const isDisabled = state.localPeopleDisabled.includes(nome);
-          statoBadge = isDisabled
-            ? '<span class="badge nonreg" style="background:#fde8e8;color:#c0392b">Disattivato</span>'
-            : '<span class="badge nonreg">Nominativo locale</span>';
-          azioni = isDisabled
-            ? `<button class="btn-small btn" data-action="enable-local" data-name="${esc(nome)}">▶ Riattiva</button><button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑</button>`
-            : `<button class="btn-small btn-secondary" data-action="disable-local" data-name="${esc(nome)}">⏸ Disattiva</button><button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑</button>`;
-      } else {
-          statoBadge = '<span class="badge nonreg">Non è utente</span>';
-      }
-      
-      html += `<div class="user-row">
-        <span class="user-name">${esc(nome)} ${statoBadge}</span>
-        <div class="user-actions">${azioni}</div>
-      </div>`;
-  });
-  
-  container.innerHTML = html;
-
-  container.querySelectorAll('button[data-action]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const action = btn.dataset.action, id = btn.dataset.id, name = btn.dataset.name;
-      if (action === 'approve') await approveUser(id); 
-      else if (action === 'suspend') await setUserStatus(id, 'suspended'); 
-      else if (action === 'activate') await setUserStatus(id, 'active');
-      else if (action === 'reset-pw') { const temp = prompt('Nuova password temporanea (min 6):'); if (temp) { try { await adminResetPassword(id, temp); alert('Fatto! L\'utente dovrà cambiarla.'); } catch (e) { alert('Errore: ' + e.message); } } }
-      else if (action === 'disable-local') {
-          if (!state.localPeopleDisabled.includes(name)) {
-              state.localPeopleDisabled.push(name);
-              localStorage.setItem(LOCAL_PEOPLE_DISABLED_KEY, JSON.stringify(state.localPeopleDisabled));
-              aggiornaListaPersone(); renderUsers();
-          }
-      } else if (action === 'enable-local') {
-          state.localPeopleDisabled = state.localPeopleDisabled.filter(p => p !== name);
-          localStorage.setItem(LOCAL_PEOPLE_DISABLED_KEY, JSON.stringify(state.localPeopleDisabled));
-          aggiornaListaPersone(); renderUsers();
-      } else if (action === 'delete-local') {
-          if (confirm('Eliminare ' + name + '?')) {
-              state.localPeople = state.localPeople.filter(p => p !== name);
-              state.localPeopleDisabled = state.localPeopleDisabled.filter(p => p !== name);
-              localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
-              localStorage.setItem(LOCAL_PEOPLE_DISABLED_KEY, JSON.stringify(state.localPeopleDisabled));
-              aggiornaListaPersone(); renderUsers();
-          }
-      }
-    });
-  });
-
-  document.getElementById('admin-create-user').addEventListener('click', async () => {
-    const un = document.getElementById('admin-new-username').value;
-    const pw = document.getElementById('admin-new-password').value;
-    const msgEl = document.getElementById('admin-new-msg');
-    try {
-      await adminCreateUser(un, pw);
-      msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato';
-      document.getElementById('admin-new-username').value = '';
-      document.getElementById('admin-new-password').value = '';
-    } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; }
-  });
-
-  document.getElementById('add-person-btn').addEventListener('click', () => {
-    const input = document.getElementById('new-person');
-    const name = input.value.trim();
-    if (!name) return;
-    if (state.people.includes(name)) { toast('⚠ Esiste già'); return; }
-    state.localPeople.push(name);
-    localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
-    input.value = ''; toast('✓ Nominativo aggiunto');
-    aggiornaListaPersone(); renderUsers();
-  });
-
-}
-
-function renderAll() { renderPayerSelect(); renderBeneficiaries(); renderRecords(); renderStats(); renderBalanceSelects(); renderBalance(); renderUsers(); }
-
-function setupNav() { document.querySelectorAll('#screen-app nav button').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active')); document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-' + btn.dataset.tab).classList.add('active'); if (btn.dataset.tab === 'users') renderUsers(); }); }); }
-
-function setupAuthEvents() {
-  document.getElementById('show-register').addEventListener('click', () => { clearAuthMsg('login-msg'); showScreen('register'); });
-  document.getElementById('show-login').addEventListener('click', () => { clearAuthMsg('reg-msg'); showScreen('login'); });
-
-  document.getElementById('login-form').addEventListener('submit', async e => {
-    e.preventDefault(); clearAuthMsg('login-msg'); setLoading(true);
-    const res = await handleLogin(document.getElementById('login-username').value.trim(), document.getElementById('login-password').value);
-    setLoading(false);
-    if (res.error) { showAuthMsg('login-msg', res.error, 'error'); } else { document.getElementById('login-password').value = ''; }
-  });
-
-  document.getElementById('register-form').addEventListener('submit', async e => {
-    e.preventDefault(); clearAuthMsg('reg-msg'); setLoading(true);
-    let res;
-    try {
-      res = await handleRegister(document.getElementById('reg-username').value, document.getElementById('reg-password').value, document.getElementById('reg-password2').value);
-    } catch(err) {
-      console.error('register submit error:', err);
-      res = { error: 'Errore di connessione. Riprova.' };
-    } finally {
-      setLoading(false);
-    }
-    if (res && res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else {
-        showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success');
-        document.getElementById('register-form').reset();
-    }
-  });
-
-  document.getElementById('change-form').addEventListener('submit', async e => {
-    e.preventDefault(); clearAuthMsg('change-msg'); setLoading(true);
-    const res = await handleChangePassword(document.getElementById('change-old').value, document.getElementById('change-new').value, document.getElementById('change-new2').value);
-    setLoading(false);
-    if (res.error) { showAuthMsg('change-msg', res.error, 'error'); } else { document.getElementById('change-form').reset(); toast('✓ Password cambiata'); }
-  });
-
-  document.getElementById('change-back-link').addEventListener('click', () => { document.getElementById('change-form').reset(); clearAuthMsg('change-msg'); showScreen('app'); });
-  document.getElementById('password-btn').addEventListener('click', () => { document.getElementById('change-form').reset(); clearAuthMsg('change-msg'); document.getElementById('change-back-wrap').classList.remove('hidden'); document.getElementById('change-subtitle').textContent = 'Cambia la tua password'; showScreen('change'); });
-  document.getElementById('logout-btn').addEventListener('click', () => { if (confirm('Uscire?')) handleLogout(); });
-}
-
-function setupAppEvents() {
-  document.getElementById('add-payer').addEventListener('change', e => { const payer = e.target.value; if (!payer) return; const c = document.getElementById('add-beneficiaries'); const cb = [...c.querySelectorAll('input')].find(i => i.value === payer); if (cb) cb.checked = true; });
-  
-  document.getElementById('add-submit').addEventListener('click', async () => {
-    const date = document.getElementById('add-date').value; const payer = document.getElementById('add-payer').value; const beneficiaries = [...document.querySelectorAll('#add-beneficiaries input:checked')].map(i => i.value);
-    if (!date || !payer || beneficiaries.length === 0) return alert('Compila tutto');
-    setLoading(true);
-    await addDoc(collection(db, 'records'), { date, payer, beneficiaries, createdAt: serverTimestamp() });
-    setLoading(false);
-    document.getElementById('add-payer').value = ''; document.getElementById('add-date').value = today(); document.querySelectorAll('#add-beneficiaries input').forEach(i => i.checked = false); toast('✓ Registrato');
-  });
-
-  ['list-from','list-to'].forEach(id => document.getElementById(id).addEventListener('change', renderRecords));
-  ['stats-from','stats-to'].forEach(id => document.getElementById(id).addEventListener('change', renderStats));
-  ['balance-from','balance-to','balance-a','balance-b'].forEach(id => document.getElementById(id).addEventListener('change', renderBalance));
-
-  document.querySelectorAll('[data-quick]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const now = new Date(); const to = today(); let from = '';
-      if (btn.dataset.quick === 'week') { const d = new Date(now); d.setDate(d.getDate()-7); from = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } else if (btn.dataset.quick === 'month') { from = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01'; }
-      document.getElementById('list-from').value = from; document.getElementById('list-to').value = to; renderRecords();
-    });
-  });
-
-  document.getElementById('admin-create-user').addEventListener('click', async () => {
-    const un = document.getElementById('admin-new-username').value;
-    const pw = document.getElementById('admin-new-password').value;
-    const msgEl = document.getElementById('admin-new-msg');
-    try {
-      await adminCreateUser(un, pw);
-      msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato';
-      document.getElementById('admin-new-username').value = '';
-      document.getElementById('admin-new-password').value = '';
-    } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; }
-  });
-
-  document.getElementById('add-person-btn').addEventListener('click', () => {
-    const input = document.getElementById('new-person');
-    const name = input.value.trim();
-    if (!name) return;
-    if (state.people.includes(name)) { toast('⚠ Esiste già'); return; }
-    state.localPeople.push(name);
-    localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
-    input.value = ''; toast('✓ Nominativo aggiunto');
-    aggiornaListaPersone(); renderUsers();
-  });
-}
-
-async function handleLogout() {
-  setLoading(true);
-  stopListeners();
-  try { await signOut(auth); } catch(e) {}
-  state.currentUser = null;
-  setLoading(false);
-  showScreen('login');
-}
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-
-    showScreen('app'); 
-    
-    try {
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        if (data.status === 'suspended' || data.status === 'deactivated') {
-          showAuthMsg('login-msg', 'Account sospeso/disattivato', 'error');
-          await signOut(auth);
-          return;
-        }
-        
-        state.currentUser = { username: data.username, role: data.role, mustChangePassword: data.mustChangePassword, status: data.status };
-        
-        if (data.username === 'Franco' && data.role !== 'admin') {
-          await setDoc(docRef, { role: 'admin' }, { merge: true });
-          state.currentUser.role = 'admin';
-        }
-
-        startListeners();
-        renderCurrentUser();
-        
-        if (state.currentUser.mustChangePassword) { 
-          showScreen('change'); 
-          document.getElementById('change-back-wrap').classList.add('hidden'); 
-        } else { 
-          resetTabsToDefault(); 
-          showScreen('app'); 
-          renderAll(); 
-        }
-      } else {
-        state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
-        renderCurrentUser();
-        showScreen('app');
-      }
-    } catch (e) { 
-      console.error("Errore Firestore in background:", e); 
-      state.currentUser = { username: 'Utente', role: 'user', mustChangePassword: false, status: 'active' };
-      renderCurrentUser();
-      showScreen('app');
-    }
+// ── RENDER: ALL ────────────────────────────────────────────────────────────
+function renderAll() {
+  renderPayer();
+  renderBenes();
+  renderRecords();
+  renderStats();
+  renderSaldi();
+  renderUsersTab();
+  updateTopbar();
+  // Aggiorna tab admin visibility
+  const adminBtn = document.querySelector('.nav-btn[data-tab="utenti"]');
+  const adminTab = document.getElementById('tab-utenti');
+  if (isAdmin()) {
+    adminBtn.style.display = '';
+    adminTab.style.display = '';
   } else {
-    state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
+    adminBtn.style.display = 'none';
+    adminTab.style.display = 'none';
+  }
+}
+
+function updateTopbar() {
+  const el = document.getElementById('topbar-user');
+  if (state.user) el.textContent = state.user.name + (state.user.role === 'admin' ? ' ⚙️' : '');
+}
+
+// ── RENDER: PAYER SELECT ───────────────────────────────────────────────────
+function renderPayer() {
+  const sel = document.getElementById('sel-payer');
+  const cur = sel.value;
+  const actives = activeUsers();
+  sel.innerHTML = '<option value="">Chi paga?</option>' +
+    actives.map(u => `<option value="${esc(u.name)}"${u.name===cur?' selected':''}>${esc(u.name)}</option>`).join('');
+}
+
+// ── RENDER: BENEFICIARIES ─────────────────────────────────────────────────
+function renderBenes() {
+  const grid = document.getElementById('bene-grid');
+  const actives = activeUsers();
+  if (actives.length === 0) { grid.innerHTML = '<p class="hint">Nessun utente attivo</p>'; return; }
+  grid.innerHTML = actives.map(u =>
+    `<label class="bene-check" id="bc-${esc(u.uid)}">
+      <input type="checkbox" value="${esc(u.name)}"> ${esc(u.name)}
+    </label>`
+  ).join('');
+  grid.querySelectorAll('.bene-check').forEach(lbl => {
+    const cb = lbl.querySelector('input');
+    cb.addEventListener('change', () => lbl.classList.toggle('checked', cb.checked));
+  });
+  // Auto-check payer
+  document.getElementById('sel-payer').addEventListener('change', e => {
+    const payer = e.target.value;
+    grid.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      if (cb.value === payer) { cb.checked = true; cb.closest('.bene-check').classList.add('checked'); }
+    });
+  });
+}
+
+function activeUsers() {
+  return state.users.filter(u => u.status === 'active');
+}
+
+// ── RENDER: RECORDS ────────────────────────────────────────────────────────
+function renderRecords() {
+  const el = document.getElementById('records-list');
+  const count = document.getElementById('records-count');
+  if (state.records.length === 0) { el.innerHTML = '<div class="empty">Nessun caffè registrato</div>'; count.textContent=''; return; }
+  count.textContent = state.records.length + ' registrazioni';
+  el.innerHTML = state.records.map(r => `
+    <div class="record-item">
+      <span class="record-date">${r.date||''}</span>
+      <span class="record-payer">${esc(r.payer||'')}</span>
+      <span class="record-bene">→ ${(r.beneficiaries||[]).join(', ')}</span>
+      ${isAdmin() ? `<button class="btn-del" data-id="${r.id}">🗑</button>` : ''}
+    </div>
+  `).join('');
+  el.querySelectorAll('.btn-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (confirm('Eliminare questo caffè?')) {
+        await deleteRecord(btn.dataset.id);
+        toast('Eliminato');
+      }
+    });
+  });
+}
+
+// ── RENDER: STATS ──────────────────────────────────────────────────────────
+function renderStats() {
+  const el = document.getElementById('stats-grid');
+  const actives = activeUsers();
+  if (actives.length === 0) { el.innerHTML = '<div class="empty">Nessun dato</div>'; return; }
+  el.innerHTML = actives.map(u => {
+    const pagati = state.records.filter(r => r.payer === u.name).length;
+    const ricevuti = state.records.filter(r => (r.beneficiaries||[]).includes(u.name)).length;
+    return `<div class="stat-card">
+      <div class="stat-name">${esc(u.name)}</div>
+      <div class="stat-num">${pagati}</div>
+      <div class="stat-sub">pagati · ${ricevuti} ricevuti</div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER: SALDI ──────────────────────────────────────────────────────────
+function renderSaldi() {
+  const el = document.getElementById('saldi-list');
+  document.getElementById('inp-price').value = state.coffeePrice || '';
+  const actives = activeUsers();
+  if (actives.length === 0) { el.innerHTML = '<div class="empty">Nessun dato</div>'; return; }
+
+  // Calcola saldo: pagati - dovuti
+  const saldi = actives.map(u => {
+    const pagati = state.records.filter(r => r.payer === u.name).length;
+    const ricevuti = state.records.filter(r => (r.beneficiaries||[]).includes(u.name)).length;
+    const netto = pagati - ricevuti; // positivo = ha pagato più di quanto dovuto
+    return { name: u.name, netto, pagati, ricevuti };
+  }).sort((a,b) => b.netto - a.netto);
+
+  el.innerHTML = saldi.map(s => {
+    const valEur = state.coffeePrice ? (s.netto * state.coffeePrice).toFixed(2) : null;
+    const cls = s.netto > 0 ? 'pos' : s.netto < 0 ? 'neg' : 'zero';
+    const sign = s.netto > 0 ? '+' : '';
+    return `<div class="balance-row">
+      <span class="balance-name">${esc(s.name)}</span>
+      <div style="text-align:right">
+        <div class="balance-val ${cls}">${sign}${s.netto} ☕</div>
+        ${valEur ? `<div style="font-size:11px;color:var(--text2)">${sign}${(s.netto>=0?'':'')}${(s.netto*state.coffeePrice>=0?'+':'')}${valEur} €</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER: USERS TAB ──────────────────────────────────────────────────────
+function renderUsersTab() {
+  if (!isAdmin()) return;
+
+  const pending = state.users.filter(u => u.status === 'pending');
+  const others = state.users.filter(u => u.status !== 'pending');
+
+  // Pending
+  const pelEl = document.getElementById('list-pending');
+  if (pending.length === 0) {
+    pelEl.innerHTML = '<div class="empty">Nessuna richiesta</div>';
+  } else {
+    pelEl.innerHTML = pending.map(u => `
+      <div class="user-row">
+        <span class="user-name">${esc(u.name)} <span class="badge badge-pending">In attesa</span></span>
+        <div class="user-actions">
+          <button class="btn-sm btn-approve" data-action="approve" data-uid="${u.uid}">✓ Approva</button>
+          <button class="btn-sm btn-suspend" data-action="reject" data-uid="${u.uid}">✗ Rifiuta</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // All users
+  const usEl = document.getElementById('list-users');
+  if (others.length === 0) {
+    usEl.innerHTML = '<div class="empty">Nessun utente</div>';
+  } else {
+    usEl.innerHTML = others.map(u => {
+      const badgeCls = u.role==='admin' ? 'badge-admin' : u.status==='active' ? 'badge-active' : 'badge-suspended';
+      const badgeTxt = u.role==='admin' ? 'Admin' : u.status==='active' ? 'Attivo' : 'Sospeso';
+      const isMe = state.user && u.uid === state.user.uid;
+      let actions = '';
+      if (u.role !== 'admin') {
+        actions += `<button class="btn-sm btn-reset" data-action="resetpw" data-uid="${u.uid}">🔑</button>`;
+        if (u.status === 'active')
+          actions += `<button class="btn-sm btn-suspend" data-action="suspend" data-uid="${u.uid}">⏸</button>`;
+        else
+          actions += `<button class="btn-sm btn-activate" data-action="activate" data-uid="${u.uid}">▶</button>`;
+      }
+      return `<div class="user-row">
+        <span class="user-name">${esc(u.name)} <span class="badge ${badgeCls}">${badgeTxt}</span>${isMe?' (tu)':''}</span>
+        <div class="user-actions">${actions}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Event listeners per i bottoni
+  document.querySelectorAll('#list-pending button[data-action], #list-users button[data-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const { action, uid } = btn.dataset;
+      try {
+        if (action === 'approve') { await setUserStatus(uid, 'active'); toast('✓ Approvato'); }
+        else if (action === 'reject') { if (confirm('Rifiutare la richiesta?')) { await setUserStatus(uid, 'deactivated'); toast('Rifiutato'); } }
+        else if (action === 'suspend') { if (confirm('Sospendere utente?')) { await setUserStatus(uid, 'suspended'); toast('Sospeso'); } }
+        else if (action === 'activate') { await setUserStatus(uid, 'active'); toast('✓ Riattivato'); }
+        else if (action === 'resetpw') {
+          const tmp = prompt('Nuova password temporanea (min 6 caratteri):');
+          if (tmp) {
+            try { await adminResetPw(uid, tmp); alert('Fatto. L\'utente dovrà cambiarla al prossimo accesso.\n\nPassword temporanea: ' + tmp); }
+            catch(e) { alert('Errore: ' + e.message); }
+          }
+        }
+      } catch(e) { toast('Errore: ' + e.message, 'var(--danger)'); }
+    });
+  });
+}
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+function setupNav() {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+// ── SETUP EVENTS ───────────────────────────────────────────────────────────
+function setupEvents() {
+  // Auth tabs
+  document.getElementById('tab-login-btn').addEventListener('click', () => {
+    document.getElementById('tab-login-btn').classList.add('active');
+    document.getElementById('tab-reg-btn').classList.remove('active');
+    document.getElementById('panel-login').classList.add('active');
+    document.getElementById('panel-reg').classList.remove('active');
+  });
+  document.getElementById('tab-reg-btn').addEventListener('click', () => {
+    document.getElementById('tab-reg-btn').classList.add('active');
+    document.getElementById('tab-login-btn').classList.remove('active');
+    document.getElementById('panel-reg').classList.add('active');
+    document.getElementById('panel-login').classList.remove('active');
+  });
+
+  // Login
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    clearMsg('login-msg');
+    const name = document.getElementById('login-user').value.trim();
+    const pw = document.getElementById('login-pw').value;
+    setLoading(true);
+    const res = await doLogin(name, pw);
+    setLoading(false);
+    if (res.error) showMsg('login-msg', res.error, 'error');
+  });
+  document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btn-login').click(); });
+
+  // Register
+  document.getElementById('btn-reg').addEventListener('click', async () => {
+    clearMsg('reg-msg');
+    const name = document.getElementById('reg-user').value;
+    const pw = document.getElementById('reg-pw').value;
+    const pw2 = document.getElementById('reg-pw2').value;
+    setLoading(true);
+    let res;
+    try { res = await doRegister(name, pw, pw2); }
+    catch(e) { res = { error: 'Errore: ' + e.message }; }
+    finally { setLoading(false); }
+    if (res.error) showMsg('reg-msg', res.error, 'error');
+    else {
+      showMsg('reg-msg', '✓ Richiesta inviata! Attendi l\'approvazione di Franco.', 'success');
+      document.getElementById('reg-user').value = '';
+      document.getElementById('reg-pw').value = '';
+      document.getElementById('reg-pw2').value = '';
+    }
+  });
+
+  // Logout
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    if (confirm('Uscire?')) { stopListeners(); signOut(auth); }
+  });
+
+  // Change password from topbar
+  document.getElementById('btn-pw-change').addEventListener('click', () => {
+    document.getElementById('ch-old').value=''; document.getElementById('ch-new').value=''; document.getElementById('ch-new2').value='';
+    clearMsg('change-msg');
+    document.getElementById('change-subtitle').textContent = 'Cambia la tua password';
+    document.getElementById('change-back-wrap').style.display = '';
+    showScreen('change');
+  });
+  document.getElementById('btn-change-back').addEventListener('click', () => showScreen('app'));
+
+  // Change password form
+  document.getElementById('btn-change-pw').addEventListener('click', async () => {
+    clearMsg('change-msg');
+    setLoading(true);
+    let res;
+    try { res = await doChangePw(document.getElementById('ch-old').value, document.getElementById('ch-new').value, document.getElementById('ch-new2').value); }
+    catch(e) { res = { error: e.message }; }
+    finally { setLoading(false); }
+    if (res.error) showMsg('change-msg', res.error, 'error');
+    else { toast('✓ Password cambiata'); showScreen('app'); }
+  });
+
+  // Set coffee price
+  document.getElementById('btn-set-price').addEventListener('click', () => {
+    const p = parseFloat(document.getElementById('inp-price').value);
+    state.coffeePrice = isNaN(p) ? 0 : p;
+    localStorage.setItem('caffe_price', state.coffeePrice);
+    renderSaldi();
+    toast('Prezzo salvato');
+  });
+
+  // Add record
+  document.getElementById('btn-add-record').addEventListener('click', async () => {
+    const payer = document.getElementById('sel-payer').value;
+    const date = document.getElementById('inp-date').value || today();
+    const benes = [...document.querySelectorAll('#bene-grid input:checked')].map(cb => cb.value);
+    if (!payer) { toast('Scegli chi paga', 'var(--warn)'); return; }
+    if (benes.length === 0) { toast('Seleziona almeno un beneficiario', 'var(--warn)'); return; }
+    document.getElementById('btn-add-record').disabled = true;
+    try {
+      await addRecord(payer, benes, date);
+      // Reset
+      document.getElementById('sel-payer').value = '';
+      document.getElementById('#bene-grid input:checked');
+      document.querySelectorAll('#bene-grid input').forEach(cb => { cb.checked = false; cb.closest('.bene-check').classList.remove('checked'); });
+      toast('☕ Registrato!');
+    } catch(e) { toast('Errore: ' + e.message, 'var(--danger)'); }
+    document.getElementById('btn-add-record').disabled = false;
+  });
+
+  // Admin: crea utente
+  document.getElementById('btn-create-user').addEventListener('click', async () => {
+    clearMsg('create-user-msg');
+    const name = document.getElementById('inp-new-user').value;
+    const pw = document.getElementById('inp-new-pw').value;
+    setLoading(true);
+    try {
+      await adminCreateUser(name, pw);
+      document.getElementById('inp-new-user').value = '';
+      document.getElementById('inp-new-pw').value = '';
+      showMsg('create-user-msg', '✓ Utente creato', 'success');
+      toast('✓ Utente creato');
+    } catch(e) {
+      showMsg('create-user-msg', e.message, 'error');
+    }
+    setLoading(false);
+  });
+}
+
+// ── AUTH STATE ─────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (fbUser) => {
+  if (!fbUser) {
+    stopListeners();
+    state.user = null;
+    showScreen('auth');
+    setLoading(false);
+    return;
+  }
+  // Carica profilo utente
+  try {
+    const snap = await getDoc(doc(db, 'users', fbUser.uid));
+    if (!snap.exists()) {
+      // Utente Firebase senza documento Firestore: logout
+      await signOut(auth);
+      return;
+    }
+    const data = snap.data();
+
+    // Controlla status
+    if (data.status === 'pending') {
+      await signOut(auth);
+      showMsg('login-msg', 'La tua richiesta è ancora in attesa di approvazione.', 'info');
+      showScreen('auth');
+      return;
+    }
+    if (data.status === 'suspended' || data.status === 'deactivated') {
+      await signOut(auth);
+      showMsg('login-msg', 'Account sospeso o disattivato. Contatta Franco.', 'error');
+      showScreen('auth');
+      return;
+    }
+
+    state.user = { uid: fbUser.uid, name: data.name, role: data.role, status: data.status, mustChangePw: data.mustChangePw };
+
+    // Upgrade automatico a admin se è Franco e non è già admin
+    if (data.name === ADMIN_NAME && data.role !== 'admin') {
+      await setDoc(doc(db, 'users', fbUser.uid), { role: 'admin' }, { merge: true });
+      state.user.role = 'admin';
+    }
+
+    if (data.mustChangePw) {
+      document.getElementById('change-subtitle').textContent = 'L\'admin ha resettato la tua password. Scegline una nuova.';
+      document.getElementById('change-back-wrap').style.display = 'none';
+      document.getElementById('ch-old').value=''; document.getElementById('ch-new').value=''; document.getElementById('ch-new2').value='';
+      clearMsg('change-msg');
+      showScreen('change');
+    } else {
+      showScreen('app');
+      startListeners();
+    }
+  } catch(e) {
+    console.error('onAuthStateChanged error:', e);
+    setLoading(false);
   }
 });
 
-async function init() {
-  document.getElementById('add-date').value = today();
-  caricaPersoneLocali();
-  setupNav(); setupAuthEvents(); setupAppEvents();
-  
-  try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const adminExists = usersSnap.docs.some(d => d.data().role === 'admin');
-    if (!adminExists) {
-      const secondaryApp = initializeApp(firebaseConfig, 'SecondaryInit');
-      const secondaryAuth = getAuth(secondaryApp);
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, ADMIN_EMAIL, '123456');
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        username: 'Franco', email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePassword: false, createdAt: serverTimestamp()
-      });
-      await signOut(secondaryAuth);
-    }
-  } catch (e) { console.log('Admin già esistente o errore:', e.message); }
-}
-init();
+// ── MAIN ───────────────────────────────────────────────────────────────────
+document.getElementById('inp-date').value = today();
+setupNav();
+setupEvents();
+ensureAdmin();
 </script>
 </body>
 </html>
