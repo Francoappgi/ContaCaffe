@@ -164,14 +164,7 @@ h3:first-child{margin-top:0}
         <div class="field"><label for="add-date">Data</label><input type="date" id="add-date"></div>
         <div class="field"><label for="add-payer">Chi ha pagato?</label><select id="add-payer"></select></div>
         <div class="field"><label>Per chi?</label><div id="add-beneficiaries" class="checkbox-group"></div></div>
-        <div class="field" style="margin-top:4px">
-          <label style="font-size:12px;color:#8a7562">Aggiungi nominativo (senza account)</label>
-          <div class="add-person" style="margin-top:4px">
-            <input type="text" id="quick-add-person" placeholder="Nome…" maxlength="30" style="font-size:14px">
-            <button class="btn btn-small" id="quick-add-person-btn" style="white-space:nowrap">+ Aggiungi</button>
-          </div>
-        </div>
-        <button class="btn" id="add-submit" style="margin-top:12px">✓ Registra</button>
+        <button class="btn" id="add-submit">✓ Registra</button>
       </div>
     </section>
     <section id="tab-list">
@@ -252,7 +245,7 @@ h3:first-child{margin-top:0}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -273,8 +266,9 @@ const DEFAULT_PEOPLE = ['Franco','Salvatore','Michelangelo','Maurizio','Eleonora
 const MIN_PW_LEN = 6;
 const ADMIN_EMAIL = 'franco@contacaffe.local';
 const LOCAL_PEOPLE_KEY = 'caffe_local_people';
+const LOCAL_PEOPLE_DISABLED_KEY = 'caffe_local_people_disabled';
 
-let state = { currentUser: null, people: [], records: [], users: [], localPeople: [] };
+let state = { currentUser: null, people: [], records: [], users: [], localPeople: [], localPeopleDisabled: [] };
 let unsubUsers = null, unsubRecords = null;
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -297,11 +291,15 @@ function caricaPersoneLocali() {
     const local = localStorage.getItem(LOCAL_PEOPLE_KEY);
     if (local) state.localPeople = JSON.parse(local);
     else state.localPeople = [];
+    const disabled = localStorage.getItem(LOCAL_PEOPLE_DISABLED_KEY);
+    if (disabled) state.localPeopleDisabled = JSON.parse(disabled);
+    else state.localPeopleDisabled = [];
 }
 
 function aggiornaListaPersone() {
     const fromUsers = state.users.filter(u => u.status === 'active').map(u => u.username);
-    state.people = [...new Set([...DEFAULT_PEOPLE, ...state.localPeople, ...fromUsers])];
+    const localAttivi = state.localPeople.filter(p => !state.localPeopleDisabled.includes(p));
+    state.people = [...new Set([...DEFAULT_PEOPLE, ...localAttivi, ...fromUsers])];
     renderPayerSelect(); renderBeneficiaries(); renderBalanceSelects(); renderRecords(); renderStats(); renderBalance();
 }
 
@@ -364,13 +362,18 @@ async function handleRegister(username, password, password2) {
     // Secondary app: non tocca la sessione principale
     const regApp = initializeApp(firebaseConfig, 'Reg_' + Date.now());
     const regAuth = getAuth(regApp);
-    const cred = await createUserWithEmailAndPassword(regAuth, usernameToEmail(username), password);
-    await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
-    await signOut(regAuth);
-    return { ok: true };
+    try {
+      const cred = await createUserWithEmailAndPassword(regAuth, usernameToEmail(username), password);
+      await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
+      await signOut(regAuth);
+      return { ok: true };
+    } finally {
+      await deleteApp(regApp).catch(() => {});
+    }
   } catch (e) {
     if (e.code === 'auth/email-already-in-use') return { error: 'Questo nome utente ha già inviato una richiesta in passato.' };
-    return { error: 'Errore: ' + e.message };
+    console.error('handleRegister error:', e);
+    return { error: 'Errore: ' + (e.message || e.code || JSON.stringify(e)) };
   }
 }
 
@@ -397,17 +400,19 @@ async function adminCreateUser(username, tempPw) {
   if (!username || username.length < 2) throw new Error('Nome troppo corto');
   if (!tempPw || tempPw.length < MIN_PW_LEN) throw new Error('Password troppo corta (min ' + MIN_PW_LEN + ')');
   if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('Nome già esistente');
+  const adminApp = initializeApp(firebaseConfig, 'AdminCreate_' + Date.now());
+  const adminAuth = getAuth(adminApp);
   try {
-    // Nome univoco per evitare conflitti tra chiamate successive
-    const adminApp = initializeApp(firebaseConfig, 'AdminCreate_' + Date.now());
-    const adminAuth = getAuth(adminApp);
     const cred = await createUserWithEmailAndPassword(adminAuth, usernameToEmail(username), tempPw);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'active', mustChangePassword: true, createdAt: serverTimestamp() });
     await signOut(adminAuth);
     toast('✓ Utente creato');
   } catch (e) {
     if (e.code === 'auth/email-already-in-use') throw new Error('Nome utente già registrato su Firebase');
-    throw new Error(e.message);
+    console.error('adminCreateUser error:', e);
+    throw new Error(e.message || e.code || 'Errore sconosciuto');
+  } finally {
+    await deleteApp(adminApp).catch(() => {});
   }
 }
 
@@ -464,8 +469,13 @@ function renderUsers() {
               else azioni += `<button class="btn-small btn" data-action="activate" data-id="${esc(userDoc.id)}">▶ Riattiva</button>`;
           }
       } else if (isLocal) {
-          statoBadge = '<span class="badge nonreg">Non è utente</span>';
-          azioni = `<button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑 Elimina</button>`;
+          const isDisabled = state.localPeopleDisabled.includes(nome);
+          statoBadge = isDisabled
+            ? '<span class="badge nonreg" style="background:#fde8e8;color:#c0392b">Disattivato</span>'
+            : '<span class="badge nonreg">Nominativo locale</span>';
+          azioni = isDisabled
+            ? `<button class="btn-small btn" data-action="enable-local" data-name="${esc(nome)}">▶ Riattiva</button><button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑</button>`
+            : `<button class="btn-small btn-secondary" data-action="disable-local" data-name="${esc(nome)}">⏸ Disattiva</button><button class="btn-small btn-danger" data-action="delete-local" data-name="${esc(nome)}">🗑</button>`;
       } else {
           statoBadge = '<span class="badge nonreg">Non è utente</span>';
       }
@@ -488,10 +498,22 @@ function renderUsers() {
       else if (action === 'suspend') await setUserStatus(id, 'suspended'); 
       else if (action === 'activate') await setUserStatus(id, 'active');
       else if (action === 'reset-pw') { const temp = prompt('Nuova password temporanea (min 6):'); if (temp) { try { await adminResetPassword(id, temp); alert('Fatto! L\'utente dovrà cambiarla.'); } catch (e) { alert('Errore: ' + e.message); } } }
-      else if (action === 'delete-local') {
+      else if (action === 'disable-local') {
+          if (!state.localPeopleDisabled.includes(name)) {
+              state.localPeopleDisabled.push(name);
+              localStorage.setItem(LOCAL_PEOPLE_DISABLED_KEY, JSON.stringify(state.localPeopleDisabled));
+              aggiornaListaPersone(); renderUsers();
+          }
+      } else if (action === 'enable-local') {
+          state.localPeopleDisabled = state.localPeopleDisabled.filter(p => p !== name);
+          localStorage.setItem(LOCAL_PEOPLE_DISABLED_KEY, JSON.stringify(state.localPeopleDisabled));
+          aggiornaListaPersone(); renderUsers();
+      } else if (action === 'delete-local') {
           if (confirm('Eliminare ' + name + '?')) {
               state.localPeople = state.localPeople.filter(p => p !== name);
+              state.localPeopleDisabled = state.localPeopleDisabled.filter(p => p !== name);
               localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
+              localStorage.setItem(LOCAL_PEOPLE_DISABLED_KEY, JSON.stringify(state.localPeopleDisabled));
               aggiornaListaPersone(); renderUsers();
           }
       }
@@ -513,22 +535,6 @@ function renderUsers() {
       });
   }
 
-  const quickAddBtn = document.getElementById('quick-add-person-btn');
-  if (quickAddBtn) {
-    const quickInput = document.getElementById('quick-add-person');
-    const doQuickAdd = () => {
-      const name = quickInput.value.trim();
-      if (!name) return;
-      if (state.people.includes(name)) { toast('⚠ Esiste già'); return; }
-      state.localPeople.push(name);
-      localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
-      quickInput.value = '';
-      toast('✓ ' + name + ' aggiunto');
-      aggiornaListaPersone(); renderAll();
-    };
-    quickAddBtn.addEventListener('click', doQuickAdd);
-    quickInput.addEventListener('keydown', e => { if (e.key === 'Enter') doQuickAdd(); });
-  }
 }
 
 function renderAll() { renderPayerSelect(); renderBeneficiaries(); renderRecords(); renderStats(); renderBalanceSelects(); renderBalance(); renderUsers(); }
