@@ -354,7 +354,7 @@ async function fsGet(collection, id, idToken) {
   if (r.status === 404) return null;
   const j = await r.json();
   if (j.error) throw new Error(j.error.message);
-  return { id, ...fromFsFields(j.fields) };
+  return { id, uid: id, ...fromFsFields(j.fields) };
 }
 async function fsList(col, idToken) {
   const url = `${FS_BASE}/${col}`;
@@ -362,7 +362,7 @@ async function fsList(col, idToken) {
   const r = await fetch(url, { headers });
   const j = await r.json();
   if (j.error) throw new Error(j.error.message);
-  return (j.documents || []).map(d => ({ id: docNameToId(d.name), ...fromFsFields(d.fields) }));
+  return (j.documents || []).map(d => { const id = docNameToId(d.name); return { id, uid: id, ...fromFsFields(d.fields) }; });
 }
 async function fsSet(col, id, data, idToken, merge = false) {
   const url = `${FS_BASE}/${col}/${id}` + (merge ? `?updateMask.fieldPaths=${Object.keys(data).join('&updateMask.fieldPaths=')}` : '');
@@ -629,19 +629,13 @@ async function pollData() {
   if (!auth.currentUser) return;
   try {
     const tok = await getToken();
-    // DEBUG: vedi risposta raw di Firestore
-    const usersUrl = `${FS_BASE}/users`;
-    const rawR = await fetch(usersUrl, { headers: { Authorization: `Bearer ${tok}` } });
-    const rawJ = await rawR.json();
-    console.log('Firestore /users raw status:', rawR.status, 'keys:', Object.keys(rawJ), 'documents count:', (rawJ.documents||[]).length, rawJ.error||'');
     const [users, records] = await Promise.all([
       fsList('users', tok),
       fsList('records', tok)
     ]);
-    console.log('pollData users:', users.length, users.map(u=>u.name||u.id));
-    let mapped = users.map(u => ({ ...u, name: u.name || u.username || 'Utente' }));
+    let mapped = users.map(u => ({ ...u, uid: u.uid || u.id, name: u.name || u.username || 'Utente' }));
     // Garantisci che l'utente corrente sia sempre nella lista
-    if (state.user && !mapped.find(u => u.uid === state.user.uid)) {
+    if (state.user && !mapped.find(u => (u.uid||u.id) === state.user.uid)) {
       mapped.push({ ...state.user });
     }
     state.users = mapped;
