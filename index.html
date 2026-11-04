@@ -885,6 +885,7 @@ onAuthStateChanged(auth, async (fbUser) => {
       showScreen('change');
     } else {
       showScreen('app');
+      renderAll();      // mostra subito tab corrette
       startListeners();
     }
   } catch(e) {
@@ -899,6 +900,7 @@ onAuthStateChanged(auth, async (fbUser) => {
       const isAdmin = fbUser.email === ADMIN_EMAIL;
       state.user = { uid: fbUser.uid, name: emailName, role: isAdmin ? 'admin' : 'user', status: 'active', mustChangePw: false };
       showScreen('app');
+      renderAll();      // mostra subito tab corrette anche senza Firestore
       startListeners();
     }
     setLoading(false);
@@ -906,6 +908,20 @@ onAuthStateChanged(auth, async (fbUser) => {
 });
 
 // ── MAIN ───────────────────────────────────────────────────────────────────
+// Test connessione Firestore all'avvio
+(async () => {
+  try {
+    const t0 = Date.now();
+    await Promise.race([
+      getDocs(collection(db, 'users')),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 5000))
+    ]);
+    console.log('✅ Firestore OK in', Date.now()-t0, 'ms');
+  } catch(e) {
+    console.error('❌ Firestore NON risponde:', e.message);
+  }
+})();
+
 document.getElementById('inp-date').value = today();
 setupNav();
 setupEvents();
