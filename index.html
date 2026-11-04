@@ -76,10 +76,11 @@
   /* ── CAFFE TAB ── */
   .payer-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
   .payer-row select, .payer-row input[type=date] { flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); }
-  .beneficiaries-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
-  .bene-check { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: var(--bg); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1.5px solid transparent; transition: all .15s; }
+  .beneficiaries-grid { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+  .bene-check { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 15px; border: 1px solid var(--border); transition: all .15s; }
+  .bene-check:hover { background: #f0e8de; }
   .bene-check.checked { background: #f0e8de; border-color: var(--accent); }
-  .bene-check input { display: none; }
+  .bene-check input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
   .btn-add { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
   .btn-add:disabled { opacity: .4; }
 
