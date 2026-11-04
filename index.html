@@ -568,11 +568,13 @@ async function pollData() {
       fsList('users', tok),
       fsList('records', tok)
     ]);
+    console.log('pollData users:', users.length, users.map(u=>u.name||u.id));
+    console.log('pollData records:', records.length);
     state.users = users.map(u => ({ ...u, name: u.name || u.username || 'Utente' }));
     state.records = records.sort((a,b) => (b.date||'').localeCompare(a.date||''));
     renderAll();
   } catch(e) {
-    console.error('pollData:', e.message);
+    console.error('pollData ERROR:', e.message);
   }
 }
 async function startListeners() {
@@ -1008,6 +1010,17 @@ document.getElementById('inp-date').value = today();
 setupNav();
 setupEvents();
 ensureAdmin();
+
+// Debug: testa REST API Firestore senza auth (regole allow read: if true)
+(async () => {
+  try {
+    const r = await fetch(`${FS_BASE}/users`);
+    const j = await r.json();
+    console.log('🔥 Firestore REST test (no auth):', r.status, JSON.stringify(j).slice(0,200));
+  } catch(e) {
+    console.error('🔥 Firestore REST test FAIL:', e.message);
+  }
+})();
 </script>
 </body>
 </html>
