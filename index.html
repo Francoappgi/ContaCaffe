@@ -473,7 +473,10 @@ async function deleteRecord(id) {
 function startListeners() {
   stopListeners();
   unsub.push(onSnapshot(collection(db, 'users'), snap => {
-    state.users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    state.users = snap.docs.map(d => {
+      const data = d.data();
+      return { uid: d.id, ...data, name: data.name || data.username || 'Utente' };
+    });
     renderAll();
   }, e => console.error('users snap:', e)));
   unsub.push(onSnapshot(collection(db, 'records'), snap => {
@@ -852,10 +855,11 @@ onAuthStateChanged(auth, async (fbUser) => {
       return;
     }
 
-    state.user = { uid: fbUser.uid, name: data.name, role: data.role, status: data.status, mustChangePw: data.mustChangePw };
+    const userName = data.name || data.username || 'Utente';
+    state.user = { uid: fbUser.uid, name: userName, role: data.role, status: data.status, mustChangePw: data.mustChangePw || data.mustChangePassword || false };
 
     // Upgrade automatico a admin se è Franco e non è già admin
-    if (data.name === ADMIN_NAME && data.role !== 'admin') {
+    if (userName === ADMIN_NAME && data.role !== 'admin') {
       await setDoc(doc(db, 'users', fbUser.uid), { role: 'admin' }, { merge: true });
       state.user.role = 'admin';
     }
