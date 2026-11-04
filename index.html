@@ -616,6 +616,29 @@ function setupAppEvents() {
       document.getElementById('list-from').value = from; document.getElementById('list-to').value = to; renderRecords();
     });
   });
+
+  document.getElementById('admin-create-user').addEventListener('click', async () => {
+    const un = document.getElementById('admin-new-username').value;
+    const pw = document.getElementById('admin-new-password').value;
+    const msgEl = document.getElementById('admin-new-msg');
+    try {
+      await adminCreateUser(un, pw);
+      msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato';
+      document.getElementById('admin-new-username').value = '';
+      document.getElementById('admin-new-password').value = '';
+    } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; }
+  });
+
+  document.getElementById('add-person-btn').addEventListener('click', () => {
+    const input = document.getElementById('new-person');
+    const name = input.value.trim();
+    if (!name) return;
+    if (state.people.includes(name)) { toast('⚠ Esiste già'); return; }
+    state.localPeople.push(name);
+    localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
+    input.value = ''; toast('✓ Nominativo aggiunto');
+    aggiornaListaPersone(); renderUsers();
+  });
 }
 
 async function handleLogout() {
