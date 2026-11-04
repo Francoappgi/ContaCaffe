@@ -283,9 +283,8 @@
 </div>
 
 <script type="module">
-import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBtyF1boI3Lrar57On1JMn_WDm6XBXlAww",
@@ -306,15 +305,99 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const PROJECT = firebaseConfig.projectId;
+const API_KEY = firebaseConfig.apiKey;
+
+// ── FIRESTORE REST API ──────────────────────────────────────────────────────
+// Tutte le operazioni Firestore via HTTPS fetch (nessun WebSocket)
+const FS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+function fsVal(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return { integerValue: String(v) };
+  if (typeof v instanceof Date || (typeof v === 'object' && v?._type === 'serverTimestamp')) return { timestampValue: new Date().toISOString() };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(fsVal) } };
+  if (typeof v === 'object') return { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k,val]) => [k, fsVal(val)])) } };
+  return { stringValue: String(v) };
+}
+function fsFields(obj) {
+  return Object.fromEntries(Object.entries(obj).map(([k,v]) => [k, fsVal(v)]));
+}
+function fromFsVal(v) {
+  if (!v) return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('integerValue' in v) return parseInt(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('timestampValue' in v) return v.timestampValue;
+  if ('nullValue' in v) return null;
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(fromFsVal);
+  if ('mapValue' in v) return fromFsFields(v.mapValue.fields || {});
+  return null;
+}
+function fromFsFields(fields) {
+  return Object.fromEntries(Object.entries(fields || {}).map(([k,v]) => [k, fromFsVal(v)]));
+}
+function docNameToId(name) { return name.split('/').pop(); }
+
+async function fsGet(collection, id, idToken) {
+  const url = `${FS_BASE}/${collection}/${id}`;
+  const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
+  const r = await fetch(url, { headers });
+  if (r.status === 404) return null;
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return { id, ...fromFsFields(j.fields) };
+}
+async function fsList(col, idToken) {
+  const url = `${FS_BASE}/${col}`;
+  const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
+  const r = await fetch(url, { headers });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return (j.documents || []).map(d => ({ id: docNameToId(d.name), ...fromFsFields(d.fields) }));
+}
+async function fsSet(col, id, data, idToken, merge = false) {
+  const url = `${FS_BASE}/${col}/${id}` + (merge ? `?updateMask.fieldPaths=${Object.keys(data).join('&updateMask.fieldPaths=')}` : '');
+  const method = merge ? 'PATCH' : 'PATCH';
+  const headers = { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) };
+  const body = JSON.stringify({ fields: fsFields(data) });
+  const r = await fetch(url, { method, headers, body });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return j;
+}
+async function fsAdd(col, data, idToken) {
+  const url = `${FS_BASE}/${col}`;
+  const headers = { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) };
+  const body = JSON.stringify({ fields: fsFields(data) });
+  const r = await fetch(url, { method: 'POST', headers, body });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return docNameToId(j.name);
+}
+async function fsDel(col, id, idToken) {
+  const url = `${FS_BASE}/${col}/${id}`;
+  const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
+  const r = await fetch(url, { method: 'DELETE', headers });
+  if (!r.ok) { const j = await r.json(); throw new Error(j.error?.message || 'delete failed'); }
+}
+
+// Ottieni idToken corrente (si rinnova automaticamente)
+async function getToken() {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+}
 
 let state = {
   user: null,       // { uid, name, role, status, mustChangePw }
-  users: [],        // tutti gli utenti da Firestore
+  users: [],        // tutti gli utenti
   records: [],      // tutti i record
   coffeePrice: parseFloat(localStorage.getItem('caffe_price') || '0') || 0,
 };
-let unsub = [];
+let pollInterval = null;
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
 function showScreen(id) {
@@ -346,21 +429,21 @@ function isAdmin() { return state.user && state.user.role === 'admin'; }
 // ── INIT ADMIN ─────────────────────────────────────────────────────────────
 async function ensureAdmin() {
   try {
-    const snap = await getDocs(collection(db, 'users'));
-    if (snap.docs.some(d => d.data().role === 'admin')) return;
-    // Crea admin via REST
-    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+    // Prova a creare l'utente admin in Firebase Auth
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PW, returnSecureToken: true })
     });
     const json = await res.json();
     if (!json.error) {
-      await setDoc(doc(db, 'users', json.localId), {
+      // Nuovo admin: scrivi su Firestore
+      await fsSet('users', json.localId, {
         name: ADMIN_NAME, email: ADMIN_EMAIL, role: 'admin',
-        status: 'active', mustChangePw: false, createdAt: serverTimestamp()
+        status: 'active', mustChangePw: false
       });
     }
+    // Se EMAIL_EXISTS, l'admin esiste già — OK
   } catch(e) { console.warn('ensureAdmin:', e.message); }
 }
 
@@ -384,27 +467,11 @@ async function doRegister(name, pw, pw2) {
   if (name.length < 2) return { error: 'Nome troppo corto (min 2 caratteri)' };
   if (pw.length < MIN_PW) return { error: `Password min ${MIN_PW} caratteri` };
   if (pw !== pw2) return { error: 'Le password non coincidono' };
-
-  // Controlla nome duplicato (con timeout su Firestore)
-  try {
-    const snap = await Promise.race([
-      getDocs(collection(db, 'users')),
-      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 5000))
-    ]);
-    if (snap.docs.some(d => (d.data().name||'').toLowerCase() === name.toLowerCase()))
-      return { error: 'Nome già in uso' };
-  } catch(e) {
-    if (e.message !== 'timeout_firestore') return { error: e.message };
-    // Se Firestore non risponde, usa state.users (già in memoria)
-    if (state.users.some(u => (u.name||'').toLowerCase() === name.toLowerCase()))
-      return { error: 'Nome già in uso' };
-  }
+  if (state.users.some(u => (u.name||'').toLowerCase() === name.toLowerCase()))
+    return { error: 'Nome già in uso' };
 
   const email = toEmail(name);
-  const apiKey = firebaseConfig.apiKey;
-
-  // Crea utente Firebase Auth via REST (HTTPS puro, nessun WebSocket)
-  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: pw, returnSecureToken: true })
@@ -414,18 +481,8 @@ async function doRegister(name, pw, pw2) {
     if (json.error.message === 'EMAIL_EXISTS') return { error: 'Questo nome ha già una richiesta in attesa.' };
     return { error: json.error.message || 'Errore registrazione' };
   }
-
   const uid = json.localId;
-  try {
-    await Promise.race([
-      setDoc(doc(db, 'users', uid), { name, email, role: 'user', status: 'pending', mustChangePw: false, createdAt: serverTimestamp() }),
-      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 8000))
-    ]);
-  } catch(e) {
-    if (e.message !== 'timeout_firestore') return { error: e.message };
-    // Timeout OK — utente creato in Auth, Firestore sincronizzerà dopo
-    console.warn('doRegister: setDoc timeout — richiesta inviata, Firestore aggiornerà al sync');
-  }
+  await fsSet('users', uid, { name, email, role: 'user', status: 'pending', mustChangePw: false });
   return { ok: true };
 }
 
@@ -438,7 +495,8 @@ async function doChangePw(oldPw, newPw, newPw2) {
     const cred = EmailAuthProvider.credential(user.email, oldPw);
     await reauthenticateWithCredential(user, cred);
     await updatePassword(user, newPw);
-    await setDoc(doc(db, 'users', user.uid), { mustChangePw: false }, { merge: true });
+    const tok = await getToken();
+    await fsSet('users', user.uid, { mustChangePw: false }, tok, true);
     return { ok: true };
   } catch(e) {
     if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
@@ -447,19 +505,16 @@ async function doChangePw(oldPw, newPw, newPw2) {
   }
 }
 
-// ── ADMIN: CREA UTENTE (via REST API — non usa WebSocket) ──────────────────
+// ── ADMIN: CREA UTENTE ──────────────────────────────────────────────────────
 async function adminCreateUser(name, pw) {
   name = name.trim();
   if (name.length < 2) throw new Error('Nome troppo corto');
   if (pw.length < MIN_PW) throw new Error(`Password min ${MIN_PW} caratteri`);
-  if (state.users.some(u => u.name.toLowerCase() === name.toLowerCase()))
+  if (state.users.some(u => (u.name||'').toLowerCase() === name.toLowerCase()))
     throw new Error('Nome già esistente');
 
   const email = toEmail(name);
-  const apiKey = firebaseConfig.apiKey;
-
-  // Crea utente Firebase Auth via REST (HTTPS puro, nessun WebSocket)
-  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: pw, returnSecureToken: true })
@@ -469,82 +524,65 @@ async function adminCreateUser(name, pw) {
     if (json.error.message === 'EMAIL_EXISTS') throw new Error('Nome già registrato');
     throw new Error(json.error.message || 'Errore creazione utente');
   }
-
   const uid = json.localId;
-  const userData = { name, email, role: 'user', status: 'active', mustChangePw: true, createdAt: serverTimestamp() };
-
-  // Aggiorna state locale subito (non aspettare Firestore che può essere lento)
+  const tok = await getToken();
+  await fsSet('users', uid, { name, email, role: 'user', status: 'active', mustChangePw: true }, tok);
+  // Aggiorna state locale subito
   if (!state.users.some(u => u.uid === uid)) {
-    state.users.push({ uid, ...userData });
+    state.users.push({ uid, name, email, role: 'user', status: 'active', mustChangePw: true });
   }
   renderAll();
-
-  // Prova a scrivere su Firestore con timeout — se fallisce l'utente è già in Auth
-  try {
-    await Promise.race([
-      setDoc(doc(db, 'users', uid), userData),
-      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 8000))
-    ]);
-  } catch(e) {
-    if (e.message === 'timeout_firestore') {
-      console.warn('setDoc timeout — utente creato in Auth, Firestore aggiornerà al prossimo sync');
-    } else {
-      throw e;
-    }
-  }
 }
 
 // ── ADMIN: APPROVE / SUSPEND / ACTIVATE ───────────────────────────────────
 async function setUserStatus(uid, status) {
-  // Aggiorna state locale subito
   const u = state.users.find(x => x.uid === uid);
   if (u) { u.status = status; renderAll(); }
-  // Scrivi su Firestore con timeout
-  try {
-    await Promise.race([
-      setDoc(doc(db, 'users', uid), { status }, { merge: true }),
-      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 8000))
-    ]);
-  } catch(e) {
-    if (e.message !== 'timeout_firestore') throw e;
-    console.warn('setUserStatus: timeout Firestore — stato aggiornato localmente');
-  }
+  const tok = await getToken();
+  await fsSet('users', uid, { status }, tok, true);
 }
 async function adminResetPw(uid, tmpPw) {
   if (tmpPw.length < MIN_PW) throw new Error(`Password min ${MIN_PW} caratteri`);
-  await setDoc(doc(db, 'users', uid), { mustChangePw: true, _tempPw: tmpPw }, { merge: true });
+  const tok = await getToken();
+  await fsSet('users', uid, { mustChangePw: true, _tempPw: tmpPw }, tok, true);
 }
 
 // ── RECORDS ───────────────────────────────────────────────────────────────
 async function addRecord(payer, benes, date) {
-  await addDoc(collection(db, 'records'), {
-    payer, beneficiaries: benes, date,
-    createdAt: serverTimestamp()
-  });
+  const tok = await getToken();
+  await fsAdd('records', { payer, beneficiaries: benes, date }, tok);
+  await pollData(); // aggiorna subito
 }
 async function deleteRecord(id) {
-  await deleteDoc(doc(db, 'records', id));
+  const tok = await getToken();
+  await fsDel('records', id, tok);
+  await pollData();
 }
 
-// ── LISTENERS ─────────────────────────────────────────────────────────────
+// ── POLLING (sostituisce onSnapshot) ───────────────────────────────────────
+async function pollData() {
+  if (!auth.currentUser) return;
+  try {
+    const tok = await getToken();
+    const [users, records] = await Promise.all([
+      fsList('users', tok),
+      fsList('records', tok)
+    ]);
+    state.users = users.map(u => ({ ...u, name: u.name || u.username || 'Utente' }));
+    state.records = records.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    renderAll();
+  } catch(e) {
+    console.error('pollData:', e.message);
+  }
+}
 function startListeners() {
   stopListeners();
-  unsub.push(onSnapshot(collection(db, 'users'), snap => {
-    state.users = snap.docs.map(d => {
-      const data = d.data();
-      return { uid: d.id, ...data, name: data.name || data.username || 'Utente' };
-    });
-    renderAll();
-  }, e => console.error('users snap:', e)));
-  unsub.push(onSnapshot(collection(db, 'records'), snap => {
-    state.records = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
-    renderRecords();
-    renderStats();
-    renderSaldi();
-  }, e => console.error('records snap:', e)));
+  pollData();
+  pollInterval = setInterval(pollData, 10000); // aggiorna ogni 10s
 }
-function stopListeners() { unsub.forEach(u => u()); unsub = []; }
+function stopListeners() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+}
 
 // ── RENDER: ALL ────────────────────────────────────────────────────────────
 function renderAll() {
@@ -888,41 +926,50 @@ onAuthStateChanged(auth, async (fbUser) => {
     setLoading(false);
     return;
   }
-  // Carica profilo utente
   try {
-    const timeout = ms => new Promise((_,rej) => setTimeout(() => rej(new Error('timeout_firestore')), ms));
-    const snap = await Promise.race([getDoc(doc(db, 'users', fbUser.uid)), timeout(8000)]);
-    if (!snap.exists()) {
-      // Utente Firebase senza documento Firestore: logout
+    const tok = await fbUser.getIdToken();
+    const data = await fsGet('users', fbUser.uid, tok);
+
+    if (!data) {
+      // Utente in Auth ma non in Firestore — potrebbe essere admin appena creato
+      const isAdminEmail = fbUser.email === ADMIN_EMAIL;
+      if (isAdminEmail) {
+        // Crea documento admin
+        await fsSet('users', fbUser.uid, { name: ADMIN_NAME, email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePw: false }, tok);
+        state.user = { uid: fbUser.uid, name: ADMIN_NAME, role: 'admin', status: 'active', mustChangePw: false };
+        showScreen('app');
+        startListeners();
+        setLoading(false);
+        return;
+      }
       await signOut(auth);
+      showMsg('login-msg', 'Account non trovato. Contatta Franco.', 'error');
+      showScreen('auth');
+      setLoading(false);
       return;
     }
-    const data = snap.data();
 
-    // Controlla status
     if (data.status === 'pending') {
       await signOut(auth);
       showMsg('login-msg', 'La tua richiesta è ancora in attesa di approvazione.', 'info');
-      showScreen('auth');
-      return;
+      showScreen('auth'); setLoading(false); return;
     }
     if (data.status === 'suspended' || data.status === 'deactivated') {
       await signOut(auth);
       showMsg('login-msg', 'Account sospeso o disattivato. Contatta Franco.', 'error');
-      showScreen('auth');
-      return;
+      showScreen('auth'); setLoading(false); return;
     }
 
     const userName = data.name || data.username || 'Utente';
     state.user = { uid: fbUser.uid, name: userName, role: data.role, status: data.status, mustChangePw: data.mustChangePw || data.mustChangePassword || false };
 
-    // Upgrade automatico a admin se è Franco e non è già admin
+    // Upgrade automatico a admin se è Franco
     if (userName === ADMIN_NAME && data.role !== 'admin') {
-      await setDoc(doc(db, 'users', fbUser.uid), { role: 'admin' }, { merge: true });
+      await fsSet('users', fbUser.uid, { role: 'admin' }, tok, true);
       state.user.role = 'admin';
     }
 
-    if (data.mustChangePw) {
+    if (state.user.mustChangePw) {
       document.getElementById('change-subtitle').textContent = 'L\'admin ha resettato la tua password. Scegline una nuova.';
       document.getElementById('change-back-wrap').style.display = 'none';
       document.getElementById('ch-old').value=''; document.getElementById('ch-new').value=''; document.getElementById('ch-new2').value='';
@@ -930,43 +977,20 @@ onAuthStateChanged(auth, async (fbUser) => {
       showScreen('change');
     } else {
       showScreen('app');
-      renderAll();      // mostra subito tab corrette
       startListeners();
     }
   } catch(e) {
     console.error('onAuthStateChanged error:', e);
-    // Se Firestore non risponde, entra comunque nell'app con dati minimi
-    if (state.user) {
-      showScreen('app');
-      startListeners();
-    } else {
-      // Prova a ricavare il nome dall'email Firebase
-      const emailName = fbUser.email ? fbUser.email.split('@')[0].replace(/_/g,' ') : 'Utente';
-      const isAdmin = fbUser.email === ADMIN_EMAIL;
-      state.user = { uid: fbUser.uid, name: emailName, role: isAdmin ? 'admin' : 'user', status: 'active', mustChangePw: false };
-      showScreen('app');
-      renderAll();      // mostra subito tab corrette anche senza Firestore
-      startListeners();
-    }
-    setLoading(false);
+    const emailName = fbUser.email ? fbUser.email.split('@')[0].replace(/_/g,' ') : 'Utente';
+    state.user = { uid: fbUser.uid, name: emailName, role: fbUser.email === ADMIN_EMAIL ? 'admin' : 'user', status: 'active', mustChangePw: false };
+    showScreen('app');
+    renderAll();
+    startListeners();
   }
+  setLoading(false);
 });
 
 // ── MAIN ───────────────────────────────────────────────────────────────────
-// Test connessione Firestore all'avvio
-(async () => {
-  try {
-    const t0 = Date.now();
-    await Promise.race([
-      getDocs(collection(db, 'users')),
-      new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 5000))
-    ]);
-    console.log('✅ Firestore OK in', Date.now()-t0, 'ms');
-  } catch(e) {
-    console.error('❌ Firestore NON risponde:', e.message);
-  }
-})();
-
 document.getElementById('inp-date').value = today();
 setupNav();
 setupEvents();
