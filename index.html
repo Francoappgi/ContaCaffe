@@ -367,8 +367,9 @@ async function handleRegister(username, password, password2) {
   if (!username || username.length < 2) return { error: 'Nome troppo corto' };
   if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (password !== password2) return { error: 'Le password non coincidono' };
+  const timeout = ms => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
   try {
-    const usersSnap = await getDocs(collection(db, 'users'));
+    const usersSnap = await Promise.race([getDocs(collection(db, 'users')), timeout(10000)]);
     if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) {
       return { error: 'Nome utente già in uso' };
     }
@@ -385,6 +386,7 @@ async function handleRegister(username, password, password2) {
     }
   } catch (e) {
     if (e.code === 'auth/email-already-in-use') return { error: 'Questo nome utente ha già inviato una richiesta in passato.' };
+    if (e.message === 'timeout') return { error: 'Connessione lenta o assente. Riprova.' };
     console.error('handleRegister error:', e);
     return { error: 'Errore: ' + (e.message || e.code || JSON.stringify(e)) };
   }
@@ -573,11 +575,18 @@ function setupAuthEvents() {
 
   document.getElementById('register-form').addEventListener('submit', async e => {
     e.preventDefault(); clearAuthMsg('reg-msg'); setLoading(true);
-    const res = await handleRegister(document.getElementById('reg-username').value, document.getElementById('reg-password').value, document.getElementById('reg-password2').value);
-    setLoading(false);
-    if (res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else { 
-        showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success'); 
-        document.getElementById('register-form').reset(); 
+    let res;
+    try {
+      res = await handleRegister(document.getElementById('reg-username').value, document.getElementById('reg-password').value, document.getElementById('reg-password2').value);
+    } catch(err) {
+      console.error('register submit error:', err);
+      res = { error: 'Errore di connessione. Riprova.' };
+    } finally {
+      setLoading(false);
+    }
+    if (res && res.error) { showAuthMsg('reg-msg', res.error, 'error'); } else {
+        showAuthMsg('reg-msg', '✓ Inviata! Attendi l\'approvazione di Franco.', 'success');
+        document.getElementById('register-form').reset();
     }
   });
 
