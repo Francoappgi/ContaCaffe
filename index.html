@@ -575,10 +575,11 @@ async function pollData() {
     console.error('pollData:', e.message);
   }
 }
-function startListeners() {
+async function startListeners() {
   stopListeners();
-  pollData();
-  pollInterval = setInterval(pollData, 10000); // aggiorna ogni 10s
+  await pollData(); // aspetta il primo carico dati prima di mostrare l'app
+  renderAll();
+  pollInterval = setInterval(pollData, 10000); // poi aggiorna ogni 10s
 }
 function stopListeners() {
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
@@ -620,26 +621,38 @@ function renderPayer() {
 }
 
 // ── RENDER: BENEFICIARIES ─────────────────────────────────────────────────
+let payerListenerAttached = false;
 function renderBenes() {
   const grid = document.getElementById('bene-grid');
   const actives = activeUsers();
   if (actives.length === 0) { grid.innerHTML = '<p class="hint">Nessun utente attivo</p>'; return; }
+
+  // Salva i checkbox già spuntati prima di ri-renderizzare
+  const checked = new Set([...grid.querySelectorAll('input:checked')].map(cb => cb.value));
+
   grid.innerHTML = actives.map(u =>
-    `<label class="bene-check" id="bc-${esc(u.uid)}">
-      <input type="checkbox" value="${esc(u.name)}"> ${esc(u.name)}
+    `<label class="bene-check${checked.has(u.name) ? ' checked' : ''}" id="bc-${esc(u.uid)}">
+      <input type="checkbox" value="${esc(u.name)}"${checked.has(u.name) ? ' checked' : ''}> ${esc(u.name)}
     </label>`
   ).join('');
   grid.querySelectorAll('.bene-check').forEach(lbl => {
     const cb = lbl.querySelector('input');
     cb.addEventListener('change', () => lbl.classList.toggle('checked', cb.checked));
   });
-  // Auto-check payer
-  document.getElementById('sel-payer').addEventListener('change', e => {
-    const payer = e.target.value;
-    grid.querySelectorAll('input[type=checkbox]').forEach(cb => {
-      if (cb.value === payer) { cb.checked = true; cb.closest('.bene-check').classList.add('checked'); }
+
+  // Auto-check payer — attacca listener una volta sola
+  if (!payerListenerAttached) {
+    payerListenerAttached = true;
+    document.getElementById('sel-payer').addEventListener('change', e => {
+      const payer = e.target.value;
+      document.querySelectorAll('#bene-grid input[type=checkbox]').forEach(cb => {
+        if (cb.value === payer && !cb.checked) {
+          cb.checked = true;
+          cb.closest('.bene-check').classList.add('checked');
+        }
+      });
     });
-  });
+  }
 }
 
 function activeUsers() {
