@@ -629,17 +629,31 @@ async function pollData() {
   if (!auth.currentUser) return;
   try {
     const tok = await getToken();
+    // DEBUG: vedi risposta raw di Firestore
+    const usersUrl = `${FS_BASE}/users`;
+    const rawR = await fetch(usersUrl, { headers: { Authorization: `Bearer ${tok}` } });
+    const rawJ = await rawR.json();
+    console.log('Firestore /users raw status:', rawR.status, 'keys:', Object.keys(rawJ), 'documents count:', (rawJ.documents||[]).length, rawJ.error||'');
     const [users, records] = await Promise.all([
       fsList('users', tok),
       fsList('records', tok)
     ]);
     console.log('pollData users:', users.length, users.map(u=>u.name||u.id));
-    console.log('pollData records:', records.length);
-    state.users = users.map(u => ({ ...u, name: u.name || u.username || 'Utente' }));
+    let mapped = users.map(u => ({ ...u, name: u.name || u.username || 'Utente' }));
+    // Garantisci che l'utente corrente sia sempre nella lista
+    if (state.user && !mapped.find(u => u.uid === state.user.uid)) {
+      mapped.push({ ...state.user });
+    }
+    state.users = mapped;
     state.records = records.sort((a,b) => (b.date||'').localeCompare(a.date||''));
     renderAll();
   } catch(e) {
     console.error('pollData ERROR:', e.message);
+    // Fallback: almeno mostra l'utente corrente
+    if (state.user && state.users.length === 0) {
+      state.users = [{ ...state.user }];
+      renderAll();
+    }
   }
 }
 async function startListeners() {
