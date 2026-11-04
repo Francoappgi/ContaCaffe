@@ -833,7 +833,8 @@ onAuthStateChanged(auth, async (fbUser) => {
   }
   // Carica profilo utente
   try {
-    const snap = await getDoc(doc(db, 'users', fbUser.uid));
+    const timeout = ms => new Promise((_,rej) => setTimeout(() => rej(new Error('timeout_firestore')), ms));
+    const snap = await Promise.race([getDoc(doc(db, 'users', fbUser.uid)), timeout(8000)]);
     if (!snap.exists()) {
       // Utente Firebase senza documento Firestore: logout
       await signOut(auth);
@@ -876,6 +877,18 @@ onAuthStateChanged(auth, async (fbUser) => {
     }
   } catch(e) {
     console.error('onAuthStateChanged error:', e);
+    // Se Firestore non risponde, entra comunque nell'app con dati minimi
+    if (state.user) {
+      showScreen('app');
+      startListeners();
+    } else {
+      // Prova a ricavare il nome dall'email Firebase
+      const emailName = fbUser.email ? fbUser.email.split('@')[0].replace(/_/g,' ') : 'Utente';
+      const isAdmin = fbUser.email === ADMIN_EMAIL;
+      state.user = { uid: fbUser.uid, name: emailName, role: isAdmin ? 'admin' : 'user', status: 'active', mustChangePw: false };
+      showScreen('app');
+      startListeners();
+    }
     setLoading(false);
   }
 });
