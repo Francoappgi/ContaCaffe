@@ -455,6 +455,7 @@ function clearMsg(id) {
   el.textContent = '';
 }
 function isAdmin() { return state.user && state.user.role === 'admin'; }
+function isSuperAdmin() { return state.user && state.user.email === ADMIN_EMAIL; }
 
 // ── INIT ADMIN ─────────────────────────────────────────────────────────────
 async function ensureAdmin() {
@@ -769,7 +770,7 @@ function renderRecords() {
       <span class="record-date">${r.date||''}</span>
       <span class="record-payer">${esc(r.payer||'')}</span>
       <span class="record-bene">→ ${(r.beneficiaries||[]).join(', ')}</span>
-      ${isAdmin() ? `<button class="btn-del" data-id="${r.id}">🗑</button>` : ''}
+      ${isSuperAdmin() ? `<button class="btn-del" data-id="${r.id}">🗑</button>` : ''}
     </div>
   `).join('');
   el.querySelectorAll('.btn-del').forEach(btn => {
@@ -1154,7 +1155,7 @@ onAuthStateChanged(auth, async (fbUser) => {
     }
 
     const userName = data.name || data.username || 'Utente';
-    state.user = { uid: fbUser.uid, name: userName, role: data.role, status: data.status, mustChangePw: data.mustChangePw || data.mustChangePassword || false };
+    state.user = { uid: fbUser.uid, name: userName, email: fbUser.email || data.email || '', role: data.role, status: data.status, mustChangePw: data.mustChangePw || data.mustChangePassword || false };
 
     // Upgrade automatico a admin se è Franco
     if (userName === ADMIN_NAME && data.role !== 'admin') {
@@ -1175,7 +1176,7 @@ onAuthStateChanged(auth, async (fbUser) => {
   } catch(e) {
     console.error('onAuthStateChanged error:', e);
     const emailName = fbUser.email ? fbUser.email.split('@')[0].replace(/_/g,' ') : 'Utente';
-    state.user = { uid: fbUser.uid, name: emailName, role: fbUser.email === ADMIN_EMAIL ? 'admin' : 'user', status: 'active', mustChangePw: false };
+    state.user = { uid: fbUser.uid, name: emailName, email: fbUser.email || '', role: fbUser.email === ADMIN_EMAIL ? 'admin' : 'user', status: 'active', mustChangePw: false };
     showScreen('app');
     renderAll();
     startListeners();
