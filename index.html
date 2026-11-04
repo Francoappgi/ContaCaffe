@@ -348,17 +348,19 @@ async function ensureAdmin() {
   try {
     const snap = await getDocs(collection(db, 'users'));
     if (snap.docs.some(d => d.data().role === 'admin')) return;
-    // Crea admin
-    const tmp = initializeApp(firebaseConfig, 'Init_' + Date.now());
-    const tmpAuth = getAuth(tmp);
-    try {
-      const cred = await createUserWithEmailAndPassword(tmpAuth, ADMIN_EMAIL, ADMIN_PW);
-      await setDoc(doc(db, 'users', cred.user.uid), {
+    // Crea admin via REST
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PW, returnSecureToken: true })
+    });
+    const json = await res.json();
+    if (!json.error) {
+      await setDoc(doc(db, 'users', json.localId), {
         name: ADMIN_NAME, email: ADMIN_EMAIL, role: 'admin',
         status: 'active', mustChangePw: false, createdAt: serverTimestamp()
       });
-      await signOut(tmpAuth);
-    } finally { await deleteApp(tmp).catch(()=>{}); }
+    }
   } catch(e) { console.warn('ensureAdmin:', e.message); }
 }
 
@@ -388,22 +390,27 @@ async function doRegister(name, pw, pw2) {
   if (snap.docs.some(d => (d.data().name||'').toLowerCase() === name.toLowerCase()))
     return { error: 'Nome già in uso' };
 
-  const tmp = initializeApp(firebaseConfig, 'Reg_' + Date.now());
-  const tmpAuth = getAuth(tmp);
-  try {
-    const cred = await createUserWithEmailAndPassword(tmpAuth, toEmail(name), pw);
-    await setDoc(doc(db, 'users', cred.user.uid), {
-      name, email: toEmail(name), role: 'user',
-      status: 'pending', mustChangePw: false, createdAt: serverTimestamp()
-    });
-    await signOut(tmpAuth);
-    return { ok: true };
-  } catch(e) {
-    if (e.code === 'auth/email-already-in-use') return { error: 'Questo nome ha già una richiesta in attesa.' };
-    return { error: e.message };
-  } finally {
-    await deleteApp(tmp).catch(()=>{});
+  const email = toEmail(name);
+  const apiKey = firebaseConfig.apiKey;
+
+  // Crea utente Firebase Auth via REST (HTTPS puro, nessun WebSocket)
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pw, returnSecureToken: true })
+  });
+  const json = await res.json();
+  if (json.error) {
+    if (json.error.message === 'EMAIL_EXISTS') return { error: 'Questo nome ha già una richiesta in attesa.' };
+    return { error: json.error.message || 'Errore registrazione' };
   }
+
+  const uid = json.localId;
+  await setDoc(doc(db, 'users', uid), {
+    name, email, role: 'user',
+    status: 'pending', mustChangePw: false, createdAt: serverTimestamp()
+  });
+  return { ok: true };
 }
 
 // ── CHANGE PASSWORD ────────────────────────────────────────────────────────
@@ -424,7 +431,7 @@ async function doChangePw(oldPw, newPw, newPw2) {
   }
 }
 
-// ── ADMIN: CREA UTENTE ─────────────────────────────────────────────────────
+// ── ADMIN: CREA UTENTE (via REST API — non usa WebSocket) ──────────────────
 async function adminCreateUser(name, pw) {
   name = name.trim();
   if (name.length < 2) throw new Error('Nome troppo corto');
@@ -432,21 +439,26 @@ async function adminCreateUser(name, pw) {
   if (state.users.some(u => u.name.toLowerCase() === name.toLowerCase()))
     throw new Error('Nome già esistente');
 
-  const tmp = initializeApp(firebaseConfig, 'AdminCreate_' + Date.now());
-  const tmpAuth = getAuth(tmp);
-  try {
-    const cred = await createUserWithEmailAndPassword(tmpAuth, toEmail(name), pw);
-    await setDoc(doc(db, 'users', cred.user.uid), {
-      name, email: toEmail(name), role: 'user',
-      status: 'active', mustChangePw: true, createdAt: serverTimestamp()
-    });
-    await signOut(tmpAuth);
-  } catch(e) {
-    if (e.code === 'auth/email-already-in-use') throw new Error('Nome già registrato');
-    throw e;
-  } finally {
-    await deleteApp(tmp).catch(()=>{});
+  const email = toEmail(name);
+  const apiKey = firebaseConfig.apiKey;
+
+  // Crea utente Firebase Auth via REST (HTTPS puro, nessun WebSocket)
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pw, returnSecureToken: true })
+  });
+  const json = await res.json();
+  if (json.error) {
+    if (json.error.message === 'EMAIL_EXISTS') throw new Error('Nome già registrato');
+    throw new Error(json.error.message || 'Errore creazione utente');
   }
+
+  const uid = json.localId;
+  await setDoc(doc(db, 'users', uid), {
+    name, email, role: 'user',
+    status: 'active', mustChangePw: true, createdAt: serverTimestamp()
+  });
 }
 
 // ── ADMIN: APPROVE / SUSPEND / ACTIVATE ───────────────────────────────────
