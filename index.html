@@ -1025,20 +1025,21 @@ onAuthStateChanged(auth, async (fbUser) => {
     const data = await fsGet('users', fbUser.uid, tok);
 
     if (!data) {
-      // Utente in Auth ma non in Firestore — potrebbe essere admin appena creato
+      // Utente in Auth ma non in Firestore — crea documento automaticamente
       const isAdminEmail = fbUser.email === ADMIN_EMAIL;
-      if (isAdminEmail) {
-        // Crea documento admin
-        await fsSet('users', fbUser.uid, { name: ADMIN_NAME, email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePw: false }, tok);
-        state.user = { uid: fbUser.uid, name: ADMIN_NAME, role: 'admin', status: 'active', mustChangePw: false };
-        showScreen('app');
-        startListeners();
-        setLoading(false);
-        return;
-      }
-      await signOut(auth);
-      showMsg('login-msg', 'Account non trovato. Contatta Franco.', 'error');
-      showScreen('auth');
+      const rawName = fbUser.email ? fbUser.email.split('@')[0].replace(/_/g, ' ') : 'Utente';
+      const autoName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      const autoDoc = {
+        name: isAdminEmail ? ADMIN_NAME : autoName,
+        email: fbUser.email,
+        role: isAdminEmail ? 'admin' : 'user',
+        status: 'active',
+        mustChangePw: false
+      };
+      await fsSet('users', fbUser.uid, autoDoc, tok);
+      state.user = { uid: fbUser.uid, ...autoDoc };
+      showScreen('app');
+      startListeners();
       setLoading(false);
       return;
     }
