@@ -269,7 +269,6 @@ const LOCAL_PEOPLE_KEY = 'caffe_local_people';
 
 let state = { currentUser: null, people: [], records: [], users: [], localPeople: [] };
 let unsubUsers = null, unsubRecords = null;
-let isRegistering = false; 
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -350,28 +349,21 @@ async function handleRegister(username, password, password2) {
   if (!username || username.length < 2) return { error: 'Nome troppo corto' };
   if (password.length < MIN_PW_LEN) return { error: 'Password troppo corta (min ' + MIN_PW_LEN + ')' };
   if (password !== password2) return { error: 'Le password non coincidono' };
-  
-  isRegistering = true;
   try {
     const usersSnap = await getDocs(collection(db, 'users'));
     if (usersSnap.docs.some(d => (d.data().username || '').toLowerCase() === username.toLowerCase())) {
-        isRegistering = false;
-        return { error: 'Nome utente già in uso' };
+      return { error: 'Nome utente già in uso' };
     }
-    const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
+    // Secondary app: non tocca la sessione principale
+    const regApp = initializeApp(firebaseConfig, 'Reg_' + Date.now());
+    const regAuth = getAuth(regApp);
+    const cred = await createUserWithEmailAndPassword(regAuth, usernameToEmail(username), password);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'pending', mustChangePassword: false, createdAt: serverTimestamp() });
-    
-    // Forza la disconnessione immediata per non far vedere l'app
-    await signOut(auth); 
-    
-    isRegistering = false;
+    await signOut(regAuth);
     return { ok: true };
-  } catch (e) { 
-    isRegistering = false;
-    if (e.code === 'auth/email-already-in-use') {
-        return { error: 'Questo nome utente ha già inviato una richiesta in passato.' };
-    }
-    return { error: 'Errore: ' + e.message }; 
+  } catch (e) {
+    if (e.code === 'auth/email-already-in-use') return { error: 'Questo nome utente ha già inviato una richiesta in passato.' };
+    return { error: 'Errore: ' + e.message };
   }
 }
 
@@ -395,15 +387,21 @@ async function setUserStatus(userId, status) { await setDoc(doc(db, 'users', use
 async function adminResetPassword(userId, tempPw) { if (tempPw.length < MIN_PW_LEN) throw new Error('Troppo corta'); await setDoc(doc(db, 'users', userId), { mustChangePassword: true, tempPassword: tempPw }, { merge: true }); toast('Reset richiesto. Chiedi all\'utente di usare questa password.'); }
 async function adminCreateUser(username, tempPw) {
   username = username.trim();
-  if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('Già esistente');
+  if (!username || username.length < 2) throw new Error('Nome troppo corto');
+  if (!tempPw || tempPw.length < MIN_PW_LEN) throw new Error('Password troppo corta (min ' + MIN_PW_LEN + ')');
+  if (state.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('Nome già esistente');
   try {
-    const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
-    const secondaryAuth = getAuth(secondaryApp);
-    const cred = await createUserWithEmailAndPassword(secondaryAuth, usernameToEmail(username), tempPw);
+    // Nome univoco per evitare conflitti tra chiamate successive
+    const adminApp = initializeApp(firebaseConfig, 'AdminCreate_' + Date.now());
+    const adminAuth = getAuth(adminApp);
+    const cred = await createUserWithEmailAndPassword(adminAuth, usernameToEmail(username), tempPw);
     await setDoc(doc(db, 'users', cred.user.uid), { username, email: usernameToEmail(username), role: 'user', status: 'active', mustChangePassword: true, createdAt: serverTimestamp() });
-    await signOut(secondaryAuth);
-    toast('Utente creato');
-  } catch (e) { throw new Error(e.message); }
+    await signOut(adminAuth);
+    toast('✓ Utente creato');
+  } catch (e) {
+    if (e.code === 'auth/email-already-in-use') throw new Error('Nome utente già registrato su Firebase');
+    throw new Error(e.message);
+  }
 }
 
 function renderCurrentUser() {
@@ -582,7 +580,6 @@ async function handleLogout() {
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    if (isRegistering) return;
 
     showScreen('app'); 
     
@@ -629,9 +626,7 @@ onAuthStateChanged(auth, async (user) => {
       showScreen('app');
     }
   } else {
-    if (!isRegistering) {
-        state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
-    }
+    state.currentUser = null; stopListeners(); showScreen('login'); setLoading(false);
   }
 });
 
