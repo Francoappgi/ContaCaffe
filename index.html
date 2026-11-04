@@ -376,12 +376,24 @@ async function fsGet(collection, id, idToken) {
   return { id, uid: id, ...fromFsFields(j.fields) };
 }
 async function fsList(col, idToken) {
+  // Prima prova GET collection (veloce); se fallisce usa runQuery (bypassa regola list)
   const url = `${FS_BASE}/${col}`;
   const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
   const r = await fetch(url, { headers });
   const j = await r.json();
-  if (j.error) throw new Error(j.error.message);
-  return (j.documents || []).map(d => { const id = docNameToId(d.name); return { id, uid: id, ...fromFsFields(d.fields) }; });
+  if (!j.error) {
+    return (j.documents || []).map(d => { const id = docNameToId(d.name); return { id, uid: id, ...fromFsFields(d.fields) }; });
+  }
+  // Fallback: runQuery (funziona anche con rules che bloccano list ma permettono get)
+  const qUrl = `${FS_BASE.replace('/documents', '')}:runQuery`;
+  const body = JSON.stringify({ structuredQuery: { from: [{ collectionId: col }] } });
+  const qr = await fetch(qUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body });
+  const qj = await qr.json();
+  if (!Array.isArray(qj)) throw new Error(j.error.message);
+  return qj.filter(x => x.document).map(x => {
+    const id = docNameToId(x.document.name);
+    return { id, uid: id, ...fromFsFields(x.document.fields) };
+  });
 }
 async function fsSet(col, id, data, idToken, merge = false) {
   const url = `${FS_BASE}/${col}/${id}` + (merge ? `?updateMask.fieldPaths=${Object.keys(data).join('&updateMask.fieldPaths=')}` : '');
