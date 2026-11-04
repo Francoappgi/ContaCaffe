@@ -715,7 +715,7 @@ async function init() {
       const secondaryAuth = getAuth(secondaryApp);
       const cred = await createUserWithEmailAndPassword(secondaryAuth, ADMIN_EMAIL, '123456');
       await setDoc(doc(db, 'users', cred.user.uid), {
-        username: 'Franco', email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePassword: true, createdAt: serverTimestamp()
+        username: 'Franco', email: ADMIN_EMAIL, role: 'admin', status: 'active', mustChangePassword: false, createdAt: serverTimestamp()
       });
       await signOut(secondaryAuth);
     }
