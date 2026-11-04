@@ -385,10 +385,20 @@ async function doRegister(name, pw, pw2) {
   if (pw.length < MIN_PW) return { error: `Password min ${MIN_PW} caratteri` };
   if (pw !== pw2) return { error: 'Le password non coincidono' };
 
-  // Controlla nome duplicato
-  const snap = await getDocs(collection(db, 'users'));
-  if (snap.docs.some(d => (d.data().name||'').toLowerCase() === name.toLowerCase()))
-    return { error: 'Nome già in uso' };
+  // Controlla nome duplicato (con timeout su Firestore)
+  try {
+    const snap = await Promise.race([
+      getDocs(collection(db, 'users')),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 5000))
+    ]);
+    if (snap.docs.some(d => (d.data().name||'').toLowerCase() === name.toLowerCase()))
+      return { error: 'Nome già in uso' };
+  } catch(e) {
+    if (e.message !== 'timeout_firestore') return { error: e.message };
+    // Se Firestore non risponde, usa state.users (già in memoria)
+    if (state.users.some(u => (u.name||'').toLowerCase() === name.toLowerCase()))
+      return { error: 'Nome già in uso' };
+  }
 
   const email = toEmail(name);
   const apiKey = firebaseConfig.apiKey;
@@ -406,10 +416,16 @@ async function doRegister(name, pw, pw2) {
   }
 
   const uid = json.localId;
-  await setDoc(doc(db, 'users', uid), {
-    name, email, role: 'user',
-    status: 'pending', mustChangePw: false, createdAt: serverTimestamp()
-  });
+  try {
+    await Promise.race([
+      setDoc(doc(db, 'users', uid), { name, email, role: 'user', status: 'pending', mustChangePw: false, createdAt: serverTimestamp() }),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 8000))
+    ]);
+  } catch(e) {
+    if (e.message !== 'timeout_firestore') return { error: e.message };
+    // Timeout OK — utente creato in Auth, Firestore sincronizzerà dopo
+    console.warn('doRegister: setDoc timeout — richiesta inviata, Firestore aggiornerà al sync');
+  }
   return { ok: true };
 }
 
@@ -455,15 +471,44 @@ async function adminCreateUser(name, pw) {
   }
 
   const uid = json.localId;
-  await setDoc(doc(db, 'users', uid), {
-    name, email, role: 'user',
-    status: 'active', mustChangePw: true, createdAt: serverTimestamp()
-  });
+  const userData = { name, email, role: 'user', status: 'active', mustChangePw: true, createdAt: serverTimestamp() };
+
+  // Aggiorna state locale subito (non aspettare Firestore che può essere lento)
+  if (!state.users.some(u => u.uid === uid)) {
+    state.users.push({ uid, ...userData });
+  }
+  renderAll();
+
+  // Prova a scrivere su Firestore con timeout — se fallisce l'utente è già in Auth
+  try {
+    await Promise.race([
+      setDoc(doc(db, 'users', uid), userData),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 8000))
+    ]);
+  } catch(e) {
+    if (e.message === 'timeout_firestore') {
+      console.warn('setDoc timeout — utente creato in Auth, Firestore aggiornerà al prossimo sync');
+    } else {
+      throw e;
+    }
+  }
 }
 
 // ── ADMIN: APPROVE / SUSPEND / ACTIVATE ───────────────────────────────────
 async function setUserStatus(uid, status) {
-  await setDoc(doc(db, 'users', uid), { status }, { merge: true });
+  // Aggiorna state locale subito
+  const u = state.users.find(x => x.uid === uid);
+  if (u) { u.status = status; renderAll(); }
+  // Scrivi su Firestore con timeout
+  try {
+    await Promise.race([
+      setDoc(doc(db, 'users', uid), { status }, { merge: true }),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout_firestore')), 8000))
+    ]);
+  } catch(e) {
+    if (e.message !== 'timeout_firestore') throw e;
+    console.warn('setUserStatus: timeout Firestore — stato aggiornato localmente');
+  }
 }
 async function adminResetPw(uid, tmpPw) {
   if (tmpPw.length < MIN_PW) throw new Error(`Password min ${MIN_PW} caratteri`);
