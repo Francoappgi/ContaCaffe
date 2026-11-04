@@ -459,8 +459,9 @@ function renderUsers() {
   if (!isAdmin()) return;
   const container = document.getElementById('users-content');
   const tuttiINomi = [...new Set([...state.people, ...state.users.map(u => u.username)])];
-  
+
   let html = '<h3>Tutti i nominativi</h3>';
+  if (tuttiINomi.length === 0) html += '<div class="empty">Nessun nominativo</div>';
   
   tuttiINomi.forEach(nome => {
       const userDoc = state.users.find(u => u.username === nome);
@@ -557,7 +558,7 @@ function renderUsers() {
 
 function renderAll() { renderPayerSelect(); renderBeneficiaries(); renderRecords(); renderStats(); renderBalanceSelects(); renderBalance(); renderUsers(); }
 
-function setupNav() { document.querySelectorAll('#screen-app nav button').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active')); document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-' + btn.dataset.tab).classList.add('active'); }); }); }
+function setupNav() { document.querySelectorAll('#screen-app nav button').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('#screen-app nav button').forEach(b => b.classList.remove('active')); document.querySelectorAll('#screen-app main section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-' + btn.dataset.tab).classList.add('active'); if (btn.dataset.tab === 'users') renderUsers(); }); }); }
 
 function setupAuthEvents() {
   document.getElementById('show-register').addEventListener('click', () => { clearAuthMsg('login-msg'); showScreen('register'); });
