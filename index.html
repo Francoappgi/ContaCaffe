@@ -112,6 +112,21 @@
   .price-row input { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); }
   .price-row button { padding: 8px 14px; background: var(--primary); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
 
+  /* ── CONFRONTO ── */
+  .confronto-selectors { display: flex; gap: 10px; margin-bottom: 14px; }
+  .confronto-selectors select { flex: 1; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); }
+  .confronto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .confronto-col { background: var(--bg); border-radius: 10px; padding: 12px; border: 1.5px solid var(--border); }
+  .confronto-col.winner { border-color: var(--success); background: #f0faf4; }
+  .confronto-col.loser { border-color: var(--danger); background: #fff5f5; }
+  .confronto-name { font-weight: 700; font-size: 15px; margin-bottom: 10px; text-align: center; }
+  .confronto-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .confronto-row:last-child { border-bottom: none; }
+  .confronto-row span:last-child { font-weight: 600; }
+  .confronto-saldo { font-size: 24px; font-weight: 800; text-align: center; margin-top: 10px; }
+  .confronto-delta { text-align: center; font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .confronto-empty { text-align: center; color: var(--text2); font-size: 14px; padding: 20px 0; }
+
   /* ── UTENTI ── */
   .user-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
   .user-row:last-child { border-bottom: none; }
@@ -250,6 +265,14 @@
         <button id="btn-set-price">Imposta</button>
       </div>
       <div id="saldi-list"></div>
+    </div>
+    <div class="card" id="card-confronto">
+      <h2>Confronta due utenti</h2>
+      <div class="confronto-selectors">
+        <select id="sel-utente-a"><option value="">— Utente A —</option></select>
+        <select id="sel-utente-b"><option value="">— Utente B —</option></select>
+      </div>
+      <div id="confronto-result"></div>
     </div>
   </div>
 
@@ -776,32 +799,94 @@ function renderStats() {
 }
 
 // ── RENDER: SALDI ──────────────────────────────────────────────────────────
+function calcolaInfoUtente(nome) {
+  const pagati = state.records.filter(r => r.payer === nome).length;
+  const ricevuti = state.records.filter(r => (r.beneficiaries||[]).includes(nome)).length;
+  const netto = pagati - ricevuti;
+  return { nome, pagati, ricevuti, netto };
+}
+
 function renderSaldi() {
   const el = document.getElementById('saldi-list');
   document.getElementById('inp-price').value = state.coffeePrice || '';
   const actives = activeUsers();
   if (actives.length === 0) { el.innerHTML = '<div class="empty">Nessun dato</div>'; return; }
 
-  // Calcola saldo: pagati - dovuti
-  const saldi = actives.map(u => {
-    const pagati = state.records.filter(r => r.payer === u.name).length;
-    const ricevuti = state.records.filter(r => (r.beneficiaries||[]).includes(u.name)).length;
-    const netto = pagati - ricevuti; // positivo = ha pagato più di quanto dovuto
-    return { name: u.name, netto, pagati, ricevuti };
-  }).sort((a,b) => b.netto - a.netto);
+  const saldi = actives.map(u => calcolaInfoUtente(u.name)).sort((a,b) => b.netto - a.netto);
 
   el.innerHTML = saldi.map(s => {
     const valEur = state.coffeePrice ? (s.netto * state.coffeePrice).toFixed(2) : null;
     const cls = s.netto > 0 ? 'pos' : s.netto < 0 ? 'neg' : 'zero';
     const sign = s.netto > 0 ? '+' : '';
+    const eurSign = s.netto >= 0 ? '+' : '';
     return `<div class="balance-row">
-      <span class="balance-name">${esc(s.name)}</span>
+      <span class="balance-name">${esc(s.nome)}</span>
       <div style="text-align:right">
         <div class="balance-val ${cls}">${sign}${s.netto} ☕</div>
-        ${valEur ? `<div style="font-size:11px;color:var(--text2)">${sign}${(s.netto>=0?'':'')}${(s.netto*state.coffeePrice>=0?'+':'')}${valEur} €</div>` : ''}
+        ${valEur ? `<div style="font-size:11px;color:var(--text2)">${eurSign}${valEur} €</div>` : ''}
       </div>
     </div>`;
   }).join('');
+
+  // Popola select confronto
+  const selA = document.getElementById('sel-utente-a');
+  const selB = document.getElementById('sel-utente-b');
+  const prevA = selA.value, prevB = selB.value;
+  const opts = actives.map(u => `<option value="${esc(u.name)}">${esc(u.name)}</option>`).join('');
+  selA.innerHTML = '<option value="">— Utente A —</option>' + opts;
+  selB.innerHTML = '<option value="">— Utente B —</option>' + opts;
+  if (prevA) selA.value = prevA;
+  if (prevB) selB.value = prevB;
+
+  renderConfronto();
+}
+
+function renderConfronto() {
+  const el = document.getElementById('confronto-result');
+  const nomeA = document.getElementById('sel-utente-a').value;
+  const nomeB = document.getElementById('sel-utente-b').value;
+
+  if (!nomeA || !nomeB) {
+    el.innerHTML = '<div class="confronto-empty">Seleziona due utenti per confrontarli</div>';
+    return;
+  }
+  if (nomeA === nomeB) {
+    el.innerHTML = '<div class="confronto-empty">Seleziona due utenti diversi</div>';
+    return;
+  }
+
+  const a = calcolaInfoUtente(nomeA);
+  const b = calcolaInfoUtente(nomeB);
+  const diff = Math.abs(a.netto - b.netto);
+  const winner = a.netto > b.netto ? 'a' : b.netto > a.netto ? 'b' : null;
+
+  function col(info, side) {
+    const cls = winner === null ? '' : winner === side ? 'winner' : 'loser';
+    const nettoCls = info.netto > 0 ? 'pos' : info.netto < 0 ? 'neg' : 'zero';
+    const sign = info.netto > 0 ? '+' : '';
+    const valEur = state.coffeePrice ? ` (${sign}${(info.netto * state.coffeePrice).toFixed(2)} €)` : '';
+    return `<div class="confronto-col ${cls}">
+      <div class="confronto-name">${esc(info.nome)}</div>
+      <div class="confronto-row"><span>☕ Pagati</span><span>${info.pagati}</span></div>
+      <div class="confronto-row"><span>☕ Ricevuti</span><span>${info.ricevuti}</span></div>
+      <div class="confronto-saldo ${nettoCls}">${sign}${info.netto} ☕</div>
+      <div class="confronto-delta">${valEur || ''}</div>
+    </div>`;
+  }
+
+  let deltaMsg = '';
+  if (winner) {
+    const winName = winner === 'a' ? nomeA : nomeB;
+    const lossName = winner === 'a' ? nomeB : nomeA;
+    const eurDelta = state.coffeePrice ? ` (${(diff * state.coffeePrice).toFixed(2)} €)` : '';
+    deltaMsg = `<div style="text-align:center;font-size:13px;color:var(--text2);margin-top:10px">
+      <strong>${esc(winName)}</strong> ha il saldo migliore di ${diff} ☕${eurDelta} rispetto a <strong>${esc(lossName)}</strong>
+    </div>`;
+  } else {
+    deltaMsg = `<div style="text-align:center;font-size:13px;color:var(--text2);margin-top:10px">Saldo identico ☕</div>`;
+  }
+
+  el.innerHTML = `<div class="confronto-grid">${col(a,'a')}${col(b,'b')}</div>${deltaMsg}`;
 }
 
 // ── RENDER: USERS TAB ──────────────────────────────────────────────────────
@@ -958,6 +1043,10 @@ function setupEvents() {
     if (res.error) showMsg('change-msg', res.error, 'error');
     else { toast('✓ Password cambiata'); showScreen('app'); }
   });
+
+  // Confronto utenti
+  document.getElementById('sel-utente-a').addEventListener('change', renderConfronto);
+  document.getElementById('sel-utente-b').addEventListener('change', renderConfronto);
 
   // Set coffee price
   document.getElementById('btn-set-price').addEventListener('click', () => {
