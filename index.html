@@ -115,17 +115,12 @@
   /* ── CONFRONTO ── */
   .confronto-selectors { display: flex; gap: 10px; margin-bottom: 14px; }
   .confronto-selectors select { flex: 1; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); }
-  .confronto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .confronto-col { background: var(--bg); border-radius: 10px; padding: 12px; border: 1.5px solid var(--border); }
-  .confronto-col.winner { border-color: var(--success); background: #f0faf4; }
-  .confronto-col.loser { border-color: var(--danger); background: #fff5f5; }
-  .confronto-name { font-weight: 700; font-size: 15px; margin-bottom: 10px; text-align: center; }
-  .confronto-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .confronto-row:last-child { border-bottom: none; }
-  .confronto-row span:last-child { font-weight: 600; }
-  .confronto-saldo { font-size: 24px; font-weight: 800; text-align: center; margin-top: 10px; }
-  .confronto-delta { text-align: center; font-size: 12px; color: var(--text2); margin-top: 4px; }
   .confronto-empty { text-align: center; color: var(--text2); font-size: 14px; padding: 20px 0; }
+  .confronto-scambi { background: var(--bg); border-radius: 10px; border: 1.5px solid var(--border); overflow: hidden; margin-bottom: 12px; }
+  .confronto-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .confronto-row:last-child { border-bottom: none; }
+  .confronto-bilancio { text-align: center; font-size: 14px; padding: 12px; background: #fff8f0; border-radius: 10px; border: 1.5px solid var(--accent); }
+  .confronto-bilancio.pari { background: #f0faf4; border-color: var(--success); color: var(--success); }
 
   /* ── UTENTI ── */
   .user-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
@@ -856,38 +851,39 @@ function renderConfronto() {
     return;
   }
 
-  const a = calcolaInfoUtente(nomeA);
-  const b = calcolaInfoUtente(nomeB);
-  const diff = Math.abs(a.netto - b.netto);
-  const winner = a.netto > b.netto ? 'a' : b.netto > a.netto ? 'b' : null;
+  // Caffè pagati da A per B: A è payer, B è tra i beneficiari
+  const aPerB = state.records.filter(r => r.payer === nomeA && (r.beneficiaries||[]).includes(nomeB)).length;
+  // Caffè pagati da B per A: B è payer, A è tra i beneficiari
+  const bPerA = state.records.filter(r => r.payer === nomeB && (r.beneficiaries||[]).includes(nomeA)).length;
 
-  function col(info, side) {
-    const cls = winner === null ? '' : winner === side ? 'winner' : 'loser';
-    const nettoCls = info.netto > 0 ? 'pos' : info.netto < 0 ? 'neg' : 'zero';
-    const sign = info.netto > 0 ? '+' : '';
-    const valEur = state.coffeePrice ? ` (${sign}${(info.netto * state.coffeePrice).toFixed(2)} €)` : '';
-    return `<div class="confronto-col ${cls}">
-      <div class="confronto-name">${esc(info.nome)}</div>
-      <div class="confronto-row"><span>☕ Pagati</span><span>${info.pagati}</span></div>
-      <div class="confronto-row"><span>☕ Ricevuti</span><span>${info.ricevuti}</span></div>
-      <div class="confronto-saldo ${nettoCls}">${sign}${info.netto} ☕</div>
-      <div class="confronto-delta">${valEur || ''}</div>
+  const diff = aPerB - bPerA; // positivo = A ha pagato di più per B
+  const eurA = state.coffeePrice ? (aPerB * state.coffeePrice).toFixed(2) : null;
+  const eurB = state.coffeePrice ? (bPerA * state.coffeePrice).toFixed(2) : null;
+
+  function rigaCaffe(pagante, ricevente, n, eur) {
+    return `<div class="confronto-row">
+      <span>☕ <strong>${esc(pagante)}</strong> → <strong>${esc(ricevente)}</strong></span>
+      <span>${n}${eur ? ` <small style="color:var(--text2)">(${eur} €)</small>` : ''}</span>
     </div>`;
   }
 
-  let deltaMsg = '';
-  if (winner) {
-    const winName = winner === 'a' ? nomeA : nomeB;
-    const lossName = winner === 'a' ? nomeB : nomeA;
-    const eurDelta = state.coffeePrice ? ` (${(diff * state.coffeePrice).toFixed(2)} €)` : '';
-    deltaMsg = `<div style="text-align:center;font-size:13px;color:var(--text2);margin-top:10px">
-      <strong>${esc(winName)}</strong> ha il saldo migliore di ${diff} ☕${eurDelta} rispetto a <strong>${esc(lossName)}</strong>
-    </div>`;
+  let bilancio = '';
+  if (diff > 0) {
+    const eurDiff = state.coffeePrice ? ` (${(diff * state.coffeePrice).toFixed(2)} €)` : '';
+    bilancio = `<div class="confronto-bilancio"><strong>${esc(nomeB)}</strong> deve ancora <strong>${diff} ☕${eurDiff}</strong> a <strong>${esc(nomeA)}</strong></div>`;
+  } else if (diff < 0) {
+    const eurDiff = state.coffeePrice ? ` (${(Math.abs(diff) * state.coffeePrice).toFixed(2)} €)` : '';
+    bilancio = `<div class="confronto-bilancio"><strong>${esc(nomeA)}</strong> deve ancora <strong>${Math.abs(diff)} ☕${eurDiff}</strong> a <strong>${esc(nomeB)}</strong></div>`;
   } else {
-    deltaMsg = `<div style="text-align:center;font-size:13px;color:var(--text2);margin-top:10px">Saldo identico ☕</div>`;
+    bilancio = `<div class="confronto-bilancio pari">Pari! Nessuno deve nulla ☕</div>`;
   }
 
-  el.innerHTML = `<div class="confronto-grid">${col(a,'a')}${col(b,'b')}</div>${deltaMsg}`;
+  el.innerHTML = `
+    <div class="confronto-scambi">
+      ${rigaCaffe(nomeA, nomeB, aPerB, eurA)}
+      ${rigaCaffe(nomeB, nomeA, bPerA, eurB)}
+    </div>
+    ${bilancio}`;
 }
 
 // ── RENDER: USERS TAB ──────────────────────────────────────────────────────
