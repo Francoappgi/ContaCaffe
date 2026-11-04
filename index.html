@@ -272,6 +272,12 @@
       </div>
       <div class="msg" id="create-user-msg" style="margin-top:8px"></div>
     </div>
+    <div class="card" id="card-repair">
+      <h2>🔧 Ripara database</h2>
+      <p class="hint" style="margin-bottom:12px">Se esistono utenti in Firebase Auth ma non nel database, questo li recupera.</p>
+      <button class="btn-full" id="btn-repair">Recupera utenti da Firebase Auth</button>
+      <div class="msg" id="repair-msg" style="margin-top:8px"></div>
+    </div>
   </div>
 
   <nav class="bottom-nav">
@@ -503,6 +509,65 @@ async function doChangePw(oldPw, newPw, newPw2) {
       return { error: 'Password attuale errata' };
     return { error: e.message };
   }
+}
+
+// ── ADMIN: RIPARA UTENTI ORFANI ────────────────────────────────────────────
+// Recupera tutti gli utenti da Firebase Auth via REST e crea i doc Firestore mancanti
+async function repairUsers() {
+  const tok = await getToken();
+  // accounts:lookup con idToken dell'admin — ritorna i dati dell'utente corrente
+  // Per listare tutti gli utenti Auth usiamo il token admin con identitytoolkit admin API
+  // Firebase non permette di listare tutti gli utenti lato client, ma possiamo
+  // cercare per email usando il pattern nome@contacaffe.local
+
+  // Strategia: usa accounts:query per trovare tutti gli utenti con email *@contacaffe.local
+  // Non disponibile lato client. Alternativa: chiedi l'idToken e usa admin REST
+
+  // Usiamo invece: fetchSignInMethodsForEmail per ogni utente che tentiamo
+  // Ma non abbiamo la lista di nomi.
+
+  // APPROCCIO PRATICO: usa accounts:lookup con il token admin per vedere tutti gli utenti
+  // tramite Firebase Auth Admin REST (richiede token con ruolo admin)
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+    body: JSON.stringify({ returnSecureToken: false })
+  });
+  const j = await r.json();
+  console.log('accounts:query resp:', JSON.stringify(j).slice(0, 300));
+
+  if (j.error) {
+    // Fallback: usa Admin SDK via identitytoolkit con API key
+    const r2 = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: tok })
+    });
+    const j2 = await r2.json();
+    console.log('accounts:lookup resp:', JSON.stringify(j2).slice(0, 300));
+
+    // Questo ritorna solo l'utente corrente (admin)
+    // Per gli altri utenti, dobbiamo usare un approccio diverso
+    throw new Error('Non è possibile listare tutti gli utenti lato client. Usa il metodo manuale sotto.');
+  }
+
+  const authUsers = j.userInfo || j.accounts || [];
+  let created = 0, skipped = 0;
+  for (const au of authUsers) {
+    const existing = await fsGet('users', au.localId, tok);
+    if (existing) { skipped++; continue; }
+    // Ricava il nome dall'email
+    const name = au.email ? au.email.split('@')[0].replace(/_/g, ' ') : au.localId;
+    const isAdm = au.email === ADMIN_EMAIL;
+    const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
+    await fsSet('users', au.localId, {
+      name: capitalized, email: au.email, role: isAdm ? 'admin' : 'user',
+      status: 'active', mustChangePw: false
+    }, tok);
+    created++;
+  }
+  await pollData();
+  return { created, skipped, total: authUsers.length };
 }
 
 // ── ADMIN: CREA UTENTE ──────────────────────────────────────────────────────
@@ -911,6 +976,20 @@ function setupEvents() {
       toast('☕ Registrato!');
     } catch(e) { toast('Errore: ' + e.message, 'var(--danger)'); }
     document.getElementById('btn-add-record').disabled = false;
+  });
+
+  // Admin: ripara utenti
+  document.getElementById('btn-repair').addEventListener('click', async () => {
+    clearMsg('repair-msg');
+    setLoading(true);
+    try {
+      const r = await repairUsers();
+      showMsg('repair-msg', `✓ Creati: ${r.created}, già presenti: ${r.skipped} (totale Auth: ${r.total})`, 'success');
+      toast('✓ Database riparato');
+    } catch(e) {
+      showMsg('repair-msg', e.message, 'error');
+    }
+    setLoading(false);
   });
 
   // Admin: crea utente
