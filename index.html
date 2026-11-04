@@ -520,19 +520,27 @@ function renderUsers() {
     });
   });
 
-  const createBtn = document.getElementById('admin-create-user');
-  if (createBtn) { createBtn.addEventListener('click', async () => { const un = document.getElementById('admin-new-username').value; const pw = document.getElementById('admin-new-password').value; const msgEl = document.getElementById('admin-new-msg'); try { await adminCreateUser(un, pw); msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato'; } catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; } }); }
-
-  const addPersonBtn = document.getElementById('add-person-btn');
-  if (addPersonBtn) {
-      addPersonBtn.addEventListener('click', () => {
+  // Event delegation su users-content (i bottoni sono generati dinamicamente da renderUsers)
+  const usersContent = document.getElementById('users-content');
+  if (usersContent) {
+    usersContent.addEventListener('click', async e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.id === 'admin-create-user') {
+        const un = document.getElementById('admin-new-username').value;
+        const pw = document.getElementById('admin-new-password').value;
+        const msgEl = document.getElementById('admin-new-msg');
+        try { await adminCreateUser(un, pw); msgEl.style.color = '#27ae60'; msgEl.textContent = '✓ Creato'; document.getElementById('admin-new-username').value = ''; document.getElementById('admin-new-password').value = ''; }
+        catch (e) { msgEl.style.color = '#c0392b'; msgEl.textContent = '✗ ' + e.message; }
+      } else if (btn.id === 'add-person-btn') {
         const input = document.getElementById('new-person'); const name = input.value.trim();
         if (!name) return; if (state.people.includes(name)) return alert('Esiste già');
         state.localPeople.push(name);
         localStorage.setItem(LOCAL_PEOPLE_KEY, JSON.stringify(state.localPeople));
-        input.value = ''; toast('✓ Persona aggiunta');
+        input.value = ''; toast('✓ Nominativo aggiunto');
         aggiornaListaPersone(); renderUsers();
-      });
+      }
+    });
   }
 
 }
