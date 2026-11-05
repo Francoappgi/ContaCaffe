@@ -805,7 +805,7 @@ function renderStats() {
   const actives = activeUsers();
   if (actives.length === 0) { el.innerHTML = '<div class="empty">Nessun dato</div>'; return; }
   el.innerHTML = actives.map(u => {
-    const pagati = state.records.filter(r => r.payer === u.name).length;
+    const pagati = state.records.filter(r => r.payer === u.name).reduce((s,r) => s + (r.beneficiaries||[]).length, 0);
     const ricevuti = state.records.filter(r => (r.beneficiaries||[]).includes(u.name)).length;
     return `<div class="stat-card">
       <div class="stat-name">${esc(u.name)}</div>
@@ -817,9 +817,14 @@ function renderStats() {
 
 // ── RENDER: SALDI ──────────────────────────────────────────────────────────
 function calcolaInfoUtente(nome) {
-  const pagati = state.records.filter(r => r.payer === nome).length;
-  const ricevuti = state.records.filter(r => (r.beneficiaries||[]).includes(nome)).length;
-  const netto = pagati - ricevuti;
+  // pagati = caffè totali serviti da X (somma dei beneficiari di ogni sua registrazione)
+  const pagati = state.records
+    .filter(r => r.payer === nome)
+    .reduce((sum, r) => sum + (r.beneficiaries||[]).length, 0);
+  // ricevuti = volte che X appare come beneficiario
+  const ricevuti = state.records
+    .filter(r => (r.beneficiaries||[]).includes(nome)).length;
+  const netto = ricevuti - pagati; // negativo = X ha pagato più di quanto ricevuto (credito)
   return { nome, pagati, ricevuti, netto };
 }
 
@@ -832,15 +837,17 @@ function renderSaldi() {
   const saldi = actives.map(u => calcolaInfoUtente(u.name)).sort((a,b) => b.netto - a.netto);
 
   el.innerHTML = saldi.map(s => {
-    const valEur = state.coffeePrice ? (s.netto * state.coffeePrice).toFixed(2) : null;
-    const cls = s.netto > 0 ? 'pos' : s.netto < 0 ? 'neg' : 'zero';
-    const sign = s.netto > 0 ? '+' : '';
-    const eurSign = s.netto >= 0 ? '+' : '';
+    const valEur = state.coffeePrice ? Math.abs(s.netto * state.coffeePrice).toFixed(2) : null;
+    // netto negativo = pagato più di ricevuto = credito (verde)
+    // netto positivo = ricevuto più di pagato = debito (rosso)
+    const cls = s.netto < 0 ? 'pos' : s.netto > 0 ? 'neg' : 'zero';
+    const label = s.netto < 0 ? `credito ${Math.abs(s.netto)} ☕` : s.netto > 0 ? `debito ${s.netto} ☕` : `pari ☕`;
+    const eurLabel = valEur && s.netto !== 0 ? `${valEur} €` : '';
     return `<div class="balance-row">
       <span class="balance-name">${esc(s.nome)}</span>
       <div style="text-align:right">
-        <div class="balance-val ${cls}">${sign}${s.netto} ☕</div>
-        ${valEur ? `<div style="font-size:11px;color:var(--text2)">${eurSign}${valEur} €</div>` : ''}
+        <div class="balance-val ${cls}">${label}</div>
+        ${eurLabel ? `<div style="font-size:11px;color:var(--text2)">${eurLabel}</div>` : ''}
       </div>
     </div>`;
   }).join('');
