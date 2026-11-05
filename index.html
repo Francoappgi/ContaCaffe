@@ -824,7 +824,7 @@ function calcolaInfoUtente(nome) {
   // ricevuti = volte che X appare come beneficiario
   const ricevuti = state.records
     .filter(r => (r.beneficiaries||[]).includes(nome)).length;
-  const netto = ricevuti - pagati; // negativo = X ha pagato più di quanto ricevuto (credito)
+  const netto = pagati - ricevuti; // positivo = X ha pagato più di quanto ricevuto (credito)
   return { nome, pagati, ricevuti, netto };
 }
 
@@ -838,10 +838,10 @@ function renderSaldi() {
 
   el.innerHTML = saldi.map(s => {
     const valEur = state.coffeePrice ? Math.abs(s.netto * state.coffeePrice).toFixed(2) : null;
-    // netto negativo = pagato più di ricevuto = credito (verde)
-    // netto positivo = ricevuto più di pagato = debito (rosso)
-    const cls = s.netto < 0 ? 'pos' : s.netto > 0 ? 'neg' : 'zero';
-    const label = s.netto < 0 ? `credito ${Math.abs(s.netto)} ☕` : s.netto > 0 ? `debito ${s.netto} ☕` : `pari ☕`;
+    // netto positivo = pagato più di ricevuto = credito (verde)
+    // netto negativo = ricevuto più di pagato = debito (rosso)
+    const cls = s.netto > 0 ? 'pos' : s.netto < 0 ? 'neg' : 'zero';
+    const label = s.netto > 0 ? `credito ${s.netto} ☕` : s.netto < 0 ? `debito ${Math.abs(s.netto)} ☕` : `pari ☕`;
     const eurLabel = valEur && s.netto !== 0 ? `${valEur} €` : '';
     return `<div class="balance-row">
       <span class="balance-name">${esc(s.nome)}</span>
