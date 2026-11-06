@@ -671,8 +671,7 @@ async function updateRecord(id, data) {
   await pollData();
 }
 function canEditRecord(r) {
-  // Può modificare/cancellare: il payer stesso o il superadmin
-  return isSuperAdmin() || (state.user && r.payer === state.user.name);
+  return isAdmin();
 }
 
 // ── POLLING (sostituisce onSnapshot) ───────────────────────────────────────
