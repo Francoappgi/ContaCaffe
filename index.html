@@ -99,6 +99,9 @@
   .record-bene { color: var(--text2); font-size: 12px; flex: 1; }
   .btn-del { background: none; border: none; color: var(--border); cursor: pointer; font-size: 16px; padding: 2px 6px; }
   .btn-del:hover { color: var(--danger); }
+  .btn-edit { background: none; border: none; color: var(--border); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+  .btn-edit:hover { color: var(--primary); }
+  .record-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
   /* ── STATS ── */
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -662,6 +665,15 @@ async function deleteRecord(id) {
   await fsDel('records', id, tok);
   await pollData();
 }
+async function updateRecord(id, data) {
+  const tok = await getToken();
+  await fsSet('records', id, data, tok, false);
+  await pollData();
+}
+function canEditRecord(r) {
+  // Può modificare/cancellare: il payer stesso o il superadmin
+  return isSuperAdmin() || (state.user && r.payer === state.user.name);
+}
 
 // ── POLLING (sostituisce onSnapshot) ───────────────────────────────────────
 async function pollData() {
@@ -788,14 +800,19 @@ function renderRecords() {
   const count = document.getElementById('records-count');
   if (state.records.length === 0) { el.innerHTML = '<div class="empty">Nessun caffè registrato</div>'; count.textContent=''; return; }
   count.textContent = state.records.length + ' registrazioni';
-  el.innerHTML = state.records.map(r => `
-    <div class="record-item">
+  el.innerHTML = state.records.map(r => {
+    const canEdit = canEditRecord(r);
+    return `<div class="record-item" data-id="${r.id}">
       <span class="record-date">${r.date||''}</span>
       <span class="record-payer">${esc(r.payer||'')}</span>
       <span class="record-bene">→ ${(r.beneficiaries||[]).join(', ')}</span>
-      ${isSuperAdmin() ? `<button class="btn-del" data-id="${r.id}">🗑</button>` : ''}
-    </div>
-  `).join('');
+      ${canEdit ? `<div class="record-actions">
+        <button class="btn-edit" data-id="${r.id}" title="Modifica">✏️</button>
+        <button class="btn-del" data-id="${r.id}" title="Elimina">🗑</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
   el.querySelectorAll('.btn-del').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (confirm('Eliminare questo caffè?')) {
@@ -803,6 +820,70 @@ function renderRecords() {
         toast('Eliminato');
       }
     });
+  });
+
+  el.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const r = state.records.find(x => x.id === id);
+      if (!r) return;
+      openEditModal(r);
+    });
+  });
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────────────────
+function openEditModal(r) {
+  // Rimuovi modale precedente se esiste
+  document.getElementById('edit-modal')?.remove();
+
+  const actives = activeUsers();
+  const benesHtml = actives.map(u => {
+    const checked = (r.beneficiaries||[]).includes(u.name) ? 'checked' : '';
+    return `<label class="bene-check${checked ? ' checked' : ''}">
+      <input type="checkbox" value="${esc(u.name)}" ${checked}> ${esc(u.name)}
+    </label>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-modal';
+  modal.innerHTML = `
+    <div id="edit-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:flex-end">
+      <div style="background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:80vh;overflow-y:auto;box-sizing:border-box">
+        <h3 style="margin:0 0 14px;font-size:16px">Modifica caffè</h3>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <select id="edit-payer" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg)">
+            ${actives.map(u => `<option value="${esc(u.name)}"${u.name===r.payer?' selected':''}>${esc(u.name)}</option>`).join('')}
+          </select>
+          <input type="date" id="edit-date" value="${r.date||''}" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg)">
+        </div>
+        <div class="beneficiaries-grid" id="edit-benes">${benesHtml}</div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button id="edit-cancel" style="flex:1;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-size:15px;cursor:pointer">Annulla</button>
+          <button id="edit-save" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Salva</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Checkbox toggle
+  modal.querySelectorAll('.bene-check').forEach(lbl => {
+    const cb = lbl.querySelector('input');
+    cb.addEventListener('change', () => lbl.classList.toggle('checked', cb.checked));
+  });
+
+  document.getElementById('edit-cancel').addEventListener('click', () => modal.remove());
+  document.getElementById('edit-backdrop').addEventListener('click', e => { if (e.target === e.currentTarget) modal.remove(); });
+
+  document.getElementById('edit-save').addEventListener('click', async () => {
+    const payer = document.getElementById('edit-payer').value;
+    const date = document.getElementById('edit-date').value;
+    const benes = [...modal.querySelectorAll('#edit-benes input:checked')].map(cb => cb.value);
+    if (!payer) { toast('Seleziona chi paga', 'var(--warn)'); return; }
+    if (benes.length === 0) { toast('Seleziona almeno un beneficiario', 'var(--warn)'); return; }
+    modal.remove();
+    await updateRecord(r.id, { payer, beneficiaries: benes, date });
+    toast('Modificato ✓');
   });
 }
 
