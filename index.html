@@ -489,7 +489,7 @@ function clearMsg(id) {
 }
 function isAdmin() { return state.user && (state.user.role === 'admin' || state.user.role === 'direttore'); }
 function isDirettore() { return state.user && state.user.role === 'direttore'; }
-function isSuperAdmin() { return state.user && state.user.email === ADMIN_EMAIL; }
+function isSuperAdmin() { return state.user && state.user.role === 'admin'; }
 
 // ── AUDIT LOG ─────────────────────────────────────────────────────────────
 async function logActivity(action, details) {
