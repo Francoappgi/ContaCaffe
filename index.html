@@ -140,7 +140,13 @@
   .badge-active { background: #e8f8ef; color: var(--success); }
   .badge-pending { background: #fff3e0; color: var(--warn); }
   .badge-admin { background: #e8e0f8; color: #6b3fa0; }
+  .badge-direttore { background: #e0f0ff; color: #1a6fa0; }
   .badge-suspended { background: #fde8e8; color: var(--danger); }
+  .audit-row { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-who { font-weight: 700; color: var(--primary); }
+  .audit-action { margin: 2px 0; }
+  .audit-time { font-size: 11px; color: var(--text2); }
   .user-actions { display: flex; gap: 6px; }
   .btn-sm { padding: 5px 10px; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
   .btn-approve { background: #e8f8ef; color: var(--success); }
@@ -309,11 +315,20 @@
     </div>
   </div>
 
+  <!-- TAB REGISTRO (sysadmin only) -->
+  <div class="tab-content" id="tab-registro" style="display:none">
+    <div class="card">
+      <h2>📋 Registro attività</h2>
+      <div id="audit-list"><div class="empty">Nessuna attività registrata</div></div>
+    </div>
+  </div>
+
   <nav class="bottom-nav">
     <button class="nav-btn active" data-tab="caffe"><span class="nav-icon">☕</span>Caffè</button>
     <button class="nav-btn" data-tab="stats"><span class="nav-icon">📊</span>Statistiche</button>
     <button class="nav-btn" data-tab="saldi"><span class="nav-icon">⚖️</span>Saldi</button>
     <button class="nav-btn admin-only" data-tab="utenti" style="display:none"><span class="nav-icon">👥</span>Utenti</button>
+    <button class="nav-btn sysadmin-only" data-tab="registro" style="display:none"><span class="nav-icon">📋</span>Registro</button>
   </nav>
 </div>
 
@@ -442,6 +457,7 @@ let state = {
   user: null,       // { uid, name, role, status, mustChangePw }
   users: [],        // tutti gli utenti
   records: [],      // tutti i record
+  auditLog: [],     // registro attività direttore (solo sysadmin)
   coffeePrice: parseFloat(localStorage.getItem('caffe_price') || '0') || 0,
 };
 let pollInterval = null;
@@ -471,8 +487,26 @@ function clearMsg(id) {
   el.className = 'msg';
   el.textContent = '';
 }
-function isAdmin() { return state.user && state.user.role === 'admin'; }
+function isAdmin() { return state.user && (state.user.role === 'admin' || state.user.role === 'direttore'); }
+function isDirettore() { return state.user && state.user.role === 'direttore'; }
 function isSuperAdmin() { return state.user && state.user.email === ADMIN_EMAIL; }
+
+// ── AUDIT LOG ─────────────────────────────────────────────────────────────
+async function logActivity(action, details) {
+  try {
+    const tok = await getToken();
+    const now = new Date();
+    await fsAdd('audit_log', {
+      who: state.user.name,
+      role: state.user.role,
+      action,
+      details: details || '',
+      ts: now.toISOString()
+    }, tok);
+  } catch(e) {
+    console.warn('logActivity fallita:', e.message);
+  }
+}
 
 // ── INIT ADMIN ─────────────────────────────────────────────────────────────
 async function ensureAdmin() {
@@ -634,10 +668,10 @@ async function adminCreateUser(name, pw) {
   const uid = json.localId;
   const tok = await getToken();
   await fsSet('users', uid, { name, email, role: 'user', status: 'active', mustChangePw: true }, tok);
-  // Aggiorna state locale subito
   if (!state.users.some(u => u.uid === uid)) {
     state.users.push({ uid, name, email, role: 'user', status: 'active', mustChangePw: true });
   }
+  if (isDirettore()) await logActivity('Crea utente', `Creato utente "${name}"`);
   renderAll();
 }
 
@@ -647,6 +681,10 @@ async function setUserStatus(uid, status) {
   if (u) { u.status = status; renderAll(); }
   const tok = await getToken();
   await fsSet('users', uid, { status }, tok, true);
+  if (isDirettore()) {
+    const labels = { active: 'Riattivato', suspended: 'Sospeso', deactivated: 'Rifiutato/disattivato', pending: 'Messo in attesa' };
+    await logActivity('Modifica utente', `${labels[status]||status} utente "${u?.name||uid}"`);
+  }
 }
 async function adminResetPw(uid, tmpPw) {
   if (tmpPw.length < MIN_PW) throw new Error(`Password min ${MIN_PW} caratteri`);
@@ -661,13 +699,16 @@ async function addRecord(payer, benes, date) {
   await pollData(); // aggiorna subito
 }
 async function deleteRecord(id) {
+  const r = state.records.find(x => x.id === id);
   const tok = await getToken();
   await fsDel('records', id, tok);
+  if (isDirettore()) await logActivity('Elimina caffè', `Eliminato caffè del ${r?.date||''} pagato da "${r?.payer||id}"`);
   await pollData();
 }
 async function updateRecord(id, data) {
   const tok = await getToken();
   await fsSet('records', id, data, tok, false);
+  if (isDirettore()) await logActivity('Modifica caffè', `Modificato caffè ${id}: payer="${data.payer}", bene=[${(data.beneficiaries||[]).join(', ')}]`);
   await pollData();
 }
 function canEditRecord(r) {
@@ -700,6 +741,15 @@ async function pollData() {
     }
     state.users = mapped;
     state.records = records.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    // Audit log: solo sysadmin
+    if (isSuperAdmin()) {
+      try {
+        const logs = await fsList('audit_log', tok);
+        state.auditLog = logs.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+      } catch(e) {
+        console.warn('fsList audit_log fallback:', e.message);
+      }
+    }
     renderAll();
   } catch(e) {
     console.error('pollData ERROR:', e.message);
@@ -727,22 +777,45 @@ function renderAll() {
   renderStats();
   renderSaldi();
   renderUsersTab();
+  renderAuditLog();
   updateTopbar();
-  // Aggiorna tab admin visibility
+  // Tab Utenti: admin e direttore
   const adminBtn = document.querySelector('.nav-btn[data-tab="utenti"]');
   const adminTab = document.getElementById('tab-utenti');
-  if (isAdmin()) {
-    adminBtn.style.display = '';
-    adminTab.style.display = '';
-  } else {
-    adminBtn.style.display = 'none';
-    adminTab.style.display = 'none';
-  }
+  if (isAdmin()) { adminBtn.style.display = ''; adminTab.style.display = ''; }
+  else { adminBtn.style.display = 'none'; adminTab.style.display = 'none'; }
+  // Tab Registro: solo sysadmin
+  const regBtn = document.querySelector('.nav-btn[data-tab="registro"]');
+  const regTab = document.getElementById('tab-registro');
+  if (isSuperAdmin()) { regBtn.style.display = ''; regTab.style.display = ''; }
+  else { regBtn.style.display = 'none'; regTab.style.display = 'none'; }
 }
 
 function updateTopbar() {
   const el = document.getElementById('topbar-user');
-  if (state.user) el.textContent = state.user.name + (state.user.role === 'admin' ? ' ⚙️' : '');
+  if (!state.user) return;
+  const icon = state.user.role === 'admin' ? ' ⚙️' : state.user.role === 'direttore' ? ' 🎖️' : '';
+  el.textContent = state.user.name + icon;
+}
+
+// ── RENDER: AUDIT LOG ─────────────────────────────────────────────────────
+function renderAuditLog() {
+  if (!isSuperAdmin()) return;
+  const el = document.getElementById('audit-list');
+  if (!el) return;
+  if (!state.auditLog || state.auditLog.length === 0) {
+    el.innerHTML = '<div class="empty">Nessuna attività registrata</div>';
+    return;
+  }
+  el.innerHTML = state.auditLog.map(a => {
+    const dt = a.ts ? new Date(a.ts) : null;
+    const formatted = dt ? dt.toLocaleString('it-IT') : '';
+    return `<div class="audit-row">
+      <span class="audit-who">${esc(a.who||'?')}</span> <span style="color:var(--text2);font-size:12px">${esc(a.role||'')}</span>
+      <div class="audit-action">${esc(a.action||'')}${a.details ? ` — <span style="color:var(--text2)">${esc(a.details)}</span>` : ''}</div>
+      <div class="audit-time">${formatted}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── RENDER: PAYER SELECT ───────────────────────────────────────────────────
@@ -1017,8 +1090,8 @@ function renderUsersTab() {
       <div class="user-row">
         <span class="user-name">${esc(u.name)} <span class="badge badge-pending">In attesa</span></span>
         <div class="user-actions">
-          <button class="btn-sm btn-approve" data-action="approve" data-uid="${u.uid}">✓ Approva</button>
-          <button class="btn-sm btn-suspend" data-action="reject" data-uid="${u.uid}">✗ Rifiuta</button>
+          ${isSuperAdmin() ? `<button class="btn-sm btn-approve" data-action="approve" data-uid="${u.uid}">✓ Approva</button>
+          <button class="btn-sm btn-suspend" data-action="reject" data-uid="${u.uid}">✗ Rifiuta</button>` : '<span style="font-size:12px;color:var(--text2)">Solo sysadmin</span>'}
         </div>
       </div>
     `).join('');
@@ -1030,16 +1103,20 @@ function renderUsersTab() {
     usEl.innerHTML = '<div class="empty">Nessun utente</div>';
   } else {
     usEl.innerHTML = others.map(u => {
-      const badgeCls = u.role==='admin' ? 'badge-admin' : u.status==='active' ? 'badge-active' : 'badge-suspended';
-      const badgeTxt = u.role==='admin' ? 'Admin' : u.status==='active' ? 'Attivo' : 'Sospeso';
+      const badgeCls = u.role==='admin' ? 'badge-admin' : u.role==='direttore' ? 'badge-direttore' : u.status==='active' ? 'badge-active' : 'badge-suspended';
+      const badgeTxt = u.role==='admin' ? 'Admin' : u.role==='direttore' ? 'Direttore' : u.status==='active' ? 'Attivo' : 'Sospeso';
       const isMe = state.user && u.uid === state.user.uid;
       let actions = '';
       if (u.role !== 'admin') {
-        actions += `<button class="btn-sm btn-reset" data-action="resetpw" data-uid="${u.uid}">🔑</button>`;
-        if (u.status === 'active')
-          actions += `<button class="btn-sm btn-suspend" data-action="suspend" data-uid="${u.uid}">⏸</button>`;
-        else
-          actions += `<button class="btn-sm btn-activate" data-action="activate" data-uid="${u.uid}">▶</button>`;
+        // Reset password: solo sysadmin
+        if (isSuperAdmin()) actions += `<button class="btn-sm btn-reset" data-action="resetpw" data-uid="${u.uid}">🔑</button>`;
+        // Attiva/sospendi: sysadmin o direttore (ma non su se stesso e non su altri admin/direttori)
+        if (u.role !== 'direttore' || isSuperAdmin()) {
+          if (u.status === 'active')
+            actions += `<button class="btn-sm btn-suspend" data-action="suspend" data-uid="${u.uid}">⏸</button>`;
+          else
+            actions += `<button class="btn-sm btn-activate" data-action="activate" data-uid="${u.uid}">▶</button>`;
+        }
       }
       return `<div class="user-row">
         <span class="user-name">${esc(u.name)} <span class="badge ${badgeCls}">${badgeTxt}</span>${isMe?' (tu)':''}</span>
