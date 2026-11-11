@@ -867,6 +867,28 @@ function activeUsers() {
 }
 
 // ── RENDER: RECORDS ────────────────────────────────────────────────────────
+// ── CONFERMA ELIMINAZIONE ────────────────────────────────────────────────
+function showConfirmDelete(msg, onConfirm) {
+  document.getElementById('confirm-modal')?.remove();
+  const el = document.createElement('div');
+  el.id = 'confirm-modal';
+  el.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="background:var(--card);border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+        <div style="font-size:28px;text-align:center;margin-bottom:12px">🗑️</div>
+        <p style="text-align:center;font-size:15px;color:var(--text);margin-bottom:20px;line-height:1.4">${msg}</p>
+        <div style="display:flex;gap:12px">
+          <button id="confirm-no" style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--border);background:var(--bg);font-size:16px;font-weight:700;color:var(--text2);cursor:pointer">✕ No</button>
+          <button id="confirm-yes" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--danger);color:#fff;font-size:16px;font-weight:700;cursor:pointer">✓ Sì</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  el.querySelector('#confirm-yes').addEventListener('click', () => { el.remove(); onConfirm(); });
+  el.querySelector('#confirm-no').addEventListener('click', () => el.remove());
+  el.querySelector('div').addEventListener('click', e => { if (e.target === el.querySelector('div')) el.remove(); });
+}
+
 function renderRecords() {
   const el = document.getElementById('records-list');
   const count = document.getElementById('records-count');
@@ -886,11 +908,13 @@ function renderRecords() {
   }).join('');
 
   el.querySelectorAll('.btn-del').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (confirm('Eliminare questo caffè?')) {
-        await deleteRecord(btn.dataset.id);
-        toast('Eliminato');
-      }
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const r = state.records.find(x => x.id === id);
+      showConfirmDelete(
+        `Eliminare il caffè del ${r?.date||''} pagato da "${r?.payer||'?'}"?`,
+        async () => { await deleteRecord(id); toast('Eliminato'); }
+      );
     });
   });
 
