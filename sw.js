@@ -1,4 +1,4 @@
-const CACHE = 'contacaffe-v1';
+const CACHE = 'contacaffe-v4';
 const ASSETS = [
   '/ContaCaffe/',
   '/ContaCaffe/index.html',
